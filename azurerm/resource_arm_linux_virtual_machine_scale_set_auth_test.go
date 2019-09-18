@@ -8,6 +8,10 @@ import (
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/tf"
 )
 
+// TODO: MSI/User auth
+// TODO: toggle disable password auth
+// TODO: changing the OS disk cache, custom sizes, LB's, App Gateway's
+
 func TestAccAzureRMLinuxVirtualMachineScaleSet_authPassword(t *testing.T) {
 	resourceName := "azurerm_linux_virtual_machine_scale_set.test"
 	ri := tf.AccRandTimeInt()
@@ -139,6 +143,56 @@ func TestAccAzureRMLinuxVirtualMachineScaleSet_authUpdatingSSHKeys(t *testing.T)
 			},
 			{
 				Config: testAccAzureRMLinuxVirtualMachineScaleSet_authSSHKeyUpdated(ri, location),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMLinuxVirtualMachineScaleSetExists(resourceName),
+				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAccAzureRMLinuxVirtualMachineScaleSet_authDisablePasswordAuthUpdate(t *testing.T) {
+	resourceName := "azurerm_linux_virtual_machine_scale_set.test"
+	ri := tf.AccRandTimeInt()
+	location := testLocation()
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMLinuxVirtualMachineScaleSetDestroy,
+		Steps: []resource.TestStep{
+			{
+				// disable it
+				Config: testAccAzureRMLinuxVirtualMachineScaleSet_authSSHKey(ri, location),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMLinuxVirtualMachineScaleSetExists(resourceName),
+				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				// enable it
+				Config: testAccAzureRMLinuxVirtualMachineScaleSet_authPassword(ri, location),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMLinuxVirtualMachineScaleSetExists(resourceName),
+				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				// disable it
+				Config: testAccAzureRMLinuxVirtualMachineScaleSet_authSSHKey(ri, location),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMLinuxVirtualMachineScaleSetExists(resourceName),
 				),
@@ -374,5 +428,3 @@ resource "azurerm_linux_virtual_machine_scale_set" "test" {
 }
 `, template, rInt)
 }
-
-// TODO: changing the OS disk cache, custom sizes, LB's, App Gateway's

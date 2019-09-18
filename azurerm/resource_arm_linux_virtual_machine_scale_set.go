@@ -75,11 +75,12 @@ func resourceArmLinuxVirtualMachineScaleSet() *schema.Resource {
 			"admin_ssh_key": computeSvc.SSHKeysSchema(),
 
 			"computer_name_prefix": {
-				// TODO: could we make this optional & default this from the VMSS name, perhaps?
 				Type:     schema.TypeString,
 				Optional: true,
+
+				// Computed since we reuse the VM name if one's not specified
 				Computed: true,
-				// TODO: does this want to be ForceNew?
+				ForceNew: true,
 				// note: whilst the portal says 1-15 characters it seems to mirror the rules for the vm name
 				// (e.g. 1-15 for Windows, 1-63 for Linux)
 				ValidateFunc: computeSvc.ValidateLinuxName,
@@ -89,7 +90,6 @@ func resourceArmLinuxVirtualMachineScaleSet() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  true, // TODO: check this default with Azure / raise an error if a passwords specified and no ssh keys?
-				ForceNew: true,
 			},
 
 			"do_not_run_extensions_on_overprovisioned_machines": {
@@ -102,6 +102,7 @@ func resourceArmLinuxVirtualMachineScaleSet() *schema.Resource {
 				// only applicable when `priority` is set to `Low`
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 				ValidateFunc: validation.StringInSlice([]string{
 					string(compute.Deallocate),
 					string(compute.Delete),
@@ -123,6 +124,7 @@ func resourceArmLinuxVirtualMachineScaleSet() *schema.Resource {
 			"priority": {
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 				Default:  string(compute.Regular),
 				ValidateFunc: validation.StringInSlice([]string{
 					string(compute.Low),
@@ -397,34 +399,49 @@ func resourceArmLinuxVirtualMachineScaleSetUpdate(d *schema.ResourceData, meta i
 	name := id.Name
 	resourceGroup := id.Base.ResourceGroup
 
-	if d.HasChange("admin_ssh_key") {
-		log.Printf("[DEBUG] Updating SSH Keys for Linux Virtual Machine Scale Set %q (Resource Group %q)..", name, resourceGroup)
+	updateConfig := false
+
+	update := compute.VirtualMachineScaleSetUpdate{
+		VirtualMachineScaleSetUpdateProperties: &compute.VirtualMachineScaleSetUpdateProperties{
+			VirtualMachineProfile: &compute.VirtualMachineScaleSetUpdateVMProfile{},
+		},
+	}
+
+	// TODO: or customData or secrets
+	if d.HasChange("admin_ssh_key") || d.HasChange("disable_password_authentication") || d.HasChange("provision_vm_agent") {
+		updateConfig = true
+
 		sshKeysRaw := d.Get("admin_ssh_key").(*schema.Set).List()
 		sshKeys := computeSvc.ExpandSSHKeys(sshKeysRaw)
-
-		update := compute.VirtualMachineScaleSetUpdate{
-			VirtualMachineScaleSetUpdateProperties: &compute.VirtualMachineScaleSetUpdateProperties{
-				VirtualMachineProfile: &compute.VirtualMachineScaleSetUpdateVMProfile{
-					OsProfile: &compute.VirtualMachineScaleSetUpdateOSProfile{
-						LinuxConfiguration: &compute.LinuxConfiguration{
-							SSH: &compute.SSHConfiguration{
-								PublicKeys: sshKeys,
-							},
-						},
-					},
+		update.VirtualMachineProfile.OsProfile = &compute.VirtualMachineScaleSetUpdateOSProfile{
+			LinuxConfiguration: &compute.LinuxConfiguration{
+				DisablePasswordAuthentication: utils.Bool(d.Get("disable_password_authentication").(bool)),
+				ProvisionVMAgent:              utils.Bool(d.Get("provision_vm_agent").(bool)),
+				SSH: &compute.SSHConfiguration{
+					PublicKeys: sshKeys,
 				},
 			},
 		}
+	}
+
+	if d.HasChange("tags") {
+		updateConfig = true
+
+		update.Tags = tags.Expand(d.Get("tags").(map[string]interface{}))
+	}
+
+	if updateConfig {
+		log.Printf("[DEBUG] Updating Linux Virtual Machine Scale Set %q (Resource Group %q)..", name, resourceGroup)
 		future, err := client.Update(ctx, resourceGroup, name, update)
 		if err != nil {
-			return fmt.Errorf("Error updating SSH Keys for Linux Virtual Machine Scale Set %q (Resource Group %q): %+v", name, resourceGroup, err)
+			return fmt.Errorf("Error updating Linux Virtual Machine Scale Set %q (Resource Group %q): %+v", name, resourceGroup, err)
 		}
 
-		log.Printf("[DEBUG] Waiting for update of SSH Keys for Linux Virtual Machine Scale Set %q (Resource Group %q)..", name, resourceGroup)
+		log.Printf("[DEBUG] Waiting for update of Linux Virtual Machine Scale Set %q (Resource Group %q)..", name, resourceGroup)
 		if err = future.WaitForCompletionRef(ctx, client.Client); err != nil {
-			return fmt.Errorf("Error waiting for update of SSH Keys for Linux Virtual Machine Scale Set %q (Resource Group %q): %+v", name, resourceGroup, err)
+			return fmt.Errorf("Error waiting for update of Linux Virtual Machine Scale Set %q (Resource Group %q): %+v", name, resourceGroup, err)
 		}
-		log.Printf("[DEBUG] Updated SSH Keys for Linux Virtual Machine Scale Set %q (Resource Group %q).", name, resourceGroup)
+		log.Printf("[DEBUG] Updated Linux Virtual Machine Scale Set %q (Resource Group %q).", name, resourceGroup)
 	}
 
 	// TODO: delta updates
