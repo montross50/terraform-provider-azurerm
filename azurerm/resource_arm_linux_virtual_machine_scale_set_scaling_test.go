@@ -6,3 +6,4 @@ package azurerm
 // single placement group
 // changing sku
 // overprovision
+// proximity placement group

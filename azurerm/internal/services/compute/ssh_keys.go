@@ -32,7 +32,7 @@ func SSHKeysSchema() *schema.Schema {
 	}
 }
 
-func ExpandSSHKeys(input []interface{}) *[]compute.SSHPublicKey {
+func ExpandSSHKeys(input []interface{}) []compute.SSHPublicKey {
 	output := make([]compute.SSHPublicKey, 0)
 
 	for _, v := range input {
@@ -45,7 +45,7 @@ func ExpandSSHKeys(input []interface{}) *[]compute.SSHPublicKey {
 		})
 	}
 
-	return &output
+	return output
 }
 
 func FlattenSSHKeys(input *compute.SSHConfiguration) (*[]interface{}, error) {

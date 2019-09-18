@@ -9,6 +9,7 @@ import (
 )
 
 // TODO: customData (which needs to be base64 encoded in the resource?)
+// TODO: secrets
 
 func TestAccAzureRMLinuxVirtualMachineScaleSet_otherComputerNamePrefix(t *testing.T) {
 	resourceName := "azurerm_linux_virtual_machine_scale_set.test"

@@ -271,6 +271,7 @@ func resourceArmLinuxVirtualMachineScaleSetCreate(d *schema.ResourceData, meta i
 		computerNamePrefix = name
 	}
 
+	disablePasswordAuthentication := d.Get("disable_password_authentication").(bool)
 	networkProfile := &compute.VirtualMachineScaleSetNetworkProfile{
 		NetworkInterfaceConfigurations: networkInterfaces,
 	}
@@ -285,6 +286,7 @@ func resourceArmLinuxVirtualMachineScaleSetCreate(d *schema.ResourceData, meta i
 		}
 	}
 
+	// TODO: data disks
 	dataDisks := make([]compute.VirtualMachineScaleSetDataDisk, 0)
 
 	virtualMachineProfile := compute.VirtualMachineScaleSetVMProfile{
@@ -293,10 +295,10 @@ func resourceArmLinuxVirtualMachineScaleSetCreate(d *schema.ResourceData, meta i
 			AdminUsername:      utils.String(d.Get("admin_username").(string)),
 			ComputerNamePrefix: utils.String(computerNamePrefix),
 			LinuxConfiguration: &compute.LinuxConfiguration{
-				DisablePasswordAuthentication: utils.Bool(d.Get("disable_password_authentication").(bool)),
+				DisablePasswordAuthentication: utils.Bool(disablePasswordAuthentication),
 				ProvisionVMAgent:              utils.Bool(d.Get("provision_vm_agent").(bool)),
 				SSH: &compute.SSHConfiguration{
-					PublicKeys: sshKeys,
+					PublicKeys: &sshKeys,
 				},
 			},
 			// TODO: customData & secrets
@@ -313,6 +315,12 @@ func resourceArmLinuxVirtualMachineScaleSetCreate(d *schema.ResourceData, meta i
 	if adminPassword, ok := d.GetOk("admin_password"); ok {
 		virtualMachineProfile.OsProfile.AdminPassword = utils.String(adminPassword.(string))
 	}
+
+	// TODO: confirm this in the API
+	if disablePasswordAuthentication && virtualMachineProfile.OsProfile.AdminPassword == nil && len(sshKeys) == 0 {
+		return fmt.Errorf("At least one SSH key must be specified if `disable_password_authentication` is enabled")
+	}
+
 	if evictionPolicyRaw, ok := d.GetOk("eviction_policy"); ok {
 		if virtualMachineProfile.Priority != compute.Low {
 			return fmt.Errorf("An `eviction_policy` can only be specified when `priority` is set to `low`")
@@ -418,7 +426,7 @@ func resourceArmLinuxVirtualMachineScaleSetUpdate(d *schema.ResourceData, meta i
 				DisablePasswordAuthentication: utils.Bool(d.Get("disable_password_authentication").(bool)),
 				ProvisionVMAgent:              utils.Bool(d.Get("provision_vm_agent").(bool)),
 				SSH: &compute.SSHConfiguration{
-					PublicKeys: sshKeys,
+					PublicKeys: &sshKeys,
 				},
 			},
 		}
