@@ -386,16 +386,46 @@ func resourceArmLinuxVirtualMachineScaleSetCreate(d *schema.ResourceData, meta i
 }
 
 func resourceArmLinuxVirtualMachineScaleSetUpdate(d *schema.ResourceData, meta interface{}) error {
-	//client := meta.(*ArmClient).compute.VMScaleSetClient
-	//ctx := meta.(*ArmClient).StopContext
-	//
-	//id, err := computeSvc.ParseVirtualMachineScaleSetResourceID(d.Id())
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//name := id.Name
-	//resourceGroup := id.Base.ResourceGroup
+	client := meta.(*ArmClient).compute.VMScaleSetClient
+	ctx := meta.(*ArmClient).StopContext
+
+	id, err := computeSvc.ParseVirtualMachineScaleSetResourceID(d.Id())
+	if err != nil {
+		return err
+	}
+
+	name := id.Name
+	resourceGroup := id.Base.ResourceGroup
+
+	if d.HasChange("admin_ssh_key") {
+		log.Printf("[DEBUG] Updating SSH Keys for Linux Virtual Machine Scale Set %q (Resource Group %q)..", name, resourceGroup)
+		sshKeysRaw := d.Get("admin_ssh_key").(*schema.Set).List()
+		sshKeys := computeSvc.ExpandSSHKeys(sshKeysRaw)
+
+		update := compute.VirtualMachineScaleSetUpdate{
+			VirtualMachineScaleSetUpdateProperties: &compute.VirtualMachineScaleSetUpdateProperties{
+				VirtualMachineProfile: &compute.VirtualMachineScaleSetUpdateVMProfile{
+					OsProfile: &compute.VirtualMachineScaleSetUpdateOSProfile{
+						LinuxConfiguration: &compute.LinuxConfiguration{
+							SSH: &compute.SSHConfiguration{
+								PublicKeys: sshKeys,
+							},
+						},
+					},
+				},
+			},
+		}
+		future, err := client.Update(ctx, resourceGroup, name, update)
+		if err != nil {
+			return fmt.Errorf("Error updating SSH Keys for Linux Virtual Machine Scale Set %q (Resource Group %q): %+v", name, resourceGroup, err)
+		}
+
+		log.Printf("[DEBUG] Waiting for update of SSH Keys for Linux Virtual Machine Scale Set %q (Resource Group %q)..", name, resourceGroup)
+		if err = future.WaitForCompletionRef(ctx, client.Client); err != nil {
+			return fmt.Errorf("Error waiting for update of SSH Keys for Linux Virtual Machine Scale Set %q (Resource Group %q): %+v", name, resourceGroup, err)
+		}
+		log.Printf("[DEBUG] Updated SSH Keys for Linux Virtual Machine Scale Set %q (Resource Group %q).", name, resourceGroup)
+	}
 
 	// TODO: delta updates
 
