@@ -469,6 +469,8 @@ func resourceArmLinuxVirtualMachineScaleSetRead(d *schema.ResourceData, meta int
 
 	var healthProbeId *string
 	if profile := props.VirtualMachineProfile; profile != nil {
+		d.Set("priority", string(profile.Priority))
+
 		if storageProfile := profile.StorageProfile; storageProfile != nil {
 			if d.Set("os_disk", computeSvc.FlattenVirtualMachineScaleSetOSDisk(storageProfile.OsDisk)); err != nil {
 				return fmt.Errorf("Error setting `os_disk`: %+v", err)
