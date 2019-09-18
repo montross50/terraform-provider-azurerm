@@ -591,9 +591,9 @@ func FlattenVirtualMachineScaleSetOSDisk(input *compute.VirtualMachineScaleSetOS
 		return []interface{}{}
 	}
 
-	diffDataSettings := make([]interface{}, 0)
+	diffDiskSettings := make([]interface{}, 0)
 	if input.DiffDiskSettings != nil {
-		diffDataSettings = append(diffDataSettings, map[string]interface{}{
+		diffDiskSettings = append(diffDiskSettings, map[string]interface{}{
 			"option": string(input.DiffDiskSettings.Option),
 		})
 	}
@@ -616,7 +616,7 @@ func FlattenVirtualMachineScaleSetOSDisk(input *compute.VirtualMachineScaleSetOS
 		map[string]interface{}{
 			"caching":                   string(input.Caching),
 			"disk_size_gb":              diskSizeGb,
-			"diff_data_settings":        diffDataSettings,
+			"diff_disk_settings":        diffDiskSettings,
 			"storage_account_type":      storageAccountType,
 			"write_accelerator_enabled": writeAcceleratorEnabled,
 		},
