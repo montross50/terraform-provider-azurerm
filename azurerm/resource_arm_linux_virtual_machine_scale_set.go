@@ -75,6 +75,8 @@ func resourceArmLinuxVirtualMachineScaleSet() *schema.Resource {
 
 			"admin_ssh_key": computeSvc.SSHKeysSchema(),
 
+			"automatic_os_upgrade_policy": computeSvc.VirtualMachineScaleSetAutomatedOSUpgradePolicySchema(),
+
 			"computer_name_prefix": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -143,6 +145,8 @@ func resourceArmLinuxVirtualMachineScaleSet() *schema.Resource {
 				ValidateFunc: azure.ValidateResourceID,
 			},
 
+			"rolling_upgrade_policy": computeSvc.VirtualMachineScaleSetRollingUpgradePolicySchema(),
+
 			"single_placement_group": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -169,11 +173,6 @@ func resourceArmLinuxVirtualMachineScaleSet() *schema.Resource {
 					string(compute.Rolling),
 				}, false),
 			},
-
-			// TODO: sort these
-			"automatic_os_upgrade_policy": computeSvc.VirtualMachineScaleSetAutomatedOSUpgradePolicySchema(),
-
-			"rolling_upgrade_policy": computeSvc.VirtualMachineScaleSetRollingUpgradePolicySchema(),
 
 			"zone_balance": {
 				Type:     schema.TypeBool,
