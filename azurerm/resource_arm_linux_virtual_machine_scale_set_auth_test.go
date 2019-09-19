@@ -174,9 +174,10 @@ func TestAccAzureRMLinuxVirtualMachineScaleSet_authDisablePasswordAuthUpdate(t *
 				),
 			},
 			{
-				ResourceName:      resourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            resourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"admin_password"},
 			},
 			{
 				// enable it
@@ -186,9 +187,10 @@ func TestAccAzureRMLinuxVirtualMachineScaleSet_authDisablePasswordAuthUpdate(t *
 				),
 			},
 			{
-				ResourceName:      resourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            resourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"admin_password"},
 			},
 			{
 				// disable it
@@ -198,9 +200,10 @@ func TestAccAzureRMLinuxVirtualMachineScaleSet_authDisablePasswordAuthUpdate(t *
 				),
 			},
 			{
-				ResourceName:      resourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            resourceName,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"admin_password"},
 			},
 		},
 	})
