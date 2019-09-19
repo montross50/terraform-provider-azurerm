@@ -72,6 +72,17 @@ func TestAccAzureRMLinuxVirtualMachineScaleSet_scalingUpdateSku(t *testing.T) {
 					"admin_password",
 				},
 			},
+			{
+				// confirms that the `instances` count comes from the API
+				Config: testAccAzureRMLinuxVirtualMachineScaleSet_scalingUpdateSkuIgnoredUpdatedCount(ri, location, "Standard_F2"),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMLinuxVirtualMachineScaleSetExists(resourceName),
+				),
+			},
+			{
+				Config:   testAccAzureRMLinuxVirtualMachineScaleSet_scalingUpdateSku(ri, location, "Standard_F2"),
+				PlanOnly: true,
+			},
 		},
 	})
 }
@@ -113,6 +124,52 @@ resource "azurerm_linux_virtual_machine_scale_set" "test" {
       primary   = true
       subnet_id = azurerm_subnet.test.id
     }
+  }
+}
+`, template, rInt, skuName)
+}
+
+func testAccAzureRMLinuxVirtualMachineScaleSet_scalingUpdateSkuIgnoredUpdatedCount(rInt int, location, skuName string) string {
+	template := testAccAzureRMLinuxVirtualMachineScaleSet_template(rInt, location)
+	return fmt.Sprintf(`
+%s
+
+resource "azurerm_linux_virtual_machine_scale_set" "test" {
+  name                 = "acctestvmss-%d"
+  resource_group_name  = azurerm_resource_group.test.name
+  location             = azurerm_resource_group.test.location
+  sku                  = %q
+  instances            = 5
+  admin_username       = "adminuser"
+  admin_password       = "P@ssword1234!"
+  computer_name_prefix = "morty"
+  disable_password_authentication = false
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "UbuntuServer"
+    sku       = "16.04-LTS"
+    version   = "latest"
+  }
+
+  os_disk {
+    storage_account_type = "Standard_LRS"
+    caching              = "ReadWrite"
+  }
+
+  network_interface {
+    name    = "example"
+    primary = true
+
+    ip_configuration {
+      name      = "internal"
+      primary   = true
+      subnet_id = azurerm_subnet.test.id
+    }
+  }
+
+  lifecycle {
+    ignore_changes = ["instances"]
   }
 }
 `, template, rInt, skuName)
