@@ -459,15 +459,24 @@ func resourceArmLinuxVirtualMachineScaleSetUpdate(d *schema.ResourceData, meta i
 		updateConfig = true
 		updateInstances = d.HasChange("sku") // TODO: should this be conditional upon it being manual too?
 
-		update.Sku = &compute.Sku{}
+		// in-case ignore_changes is being used, since both fields are required
+		// look up the current values and override them as needed
+		existing, err := client.Get(ctx, resourceGroup, name)
+		if err != nil {
+			return fmt.Errorf("Error retrieving Linux Virtual Machine Scale Set %q (Resource Group %q): %+v", name, resourceGroup, err)
+		}
+
+		sku := existing.Sku
 
 		if d.HasChange("sku") {
-			update.Sku.Name = utils.String(d.Get("sku").(string))
+			sku.Name = utils.String(d.Get("sku").(string))
 		}
 
 		if d.HasChange("instances") {
-			update.Sku.Capacity = utils.Int64(int64(d.Get("instances").(int)))
+			sku.Capacity = utils.Int64(int64(d.Get("instances").(int)))
 		}
+
+		update.Sku = sku
 	}
 
 	if d.HasChange("tags") {
