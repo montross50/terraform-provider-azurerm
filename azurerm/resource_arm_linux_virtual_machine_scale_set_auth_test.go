@@ -9,7 +9,6 @@ import (
 )
 
 // TODO: MSI/User auth
-// TODO: toggle disable password auth
 // TODO: changing the OS disk cache, custom sizes, LB's, App Gateway's
 
 func TestAccAzureRMLinuxVirtualMachineScaleSet_authPassword(t *testing.T) {
