@@ -460,10 +460,14 @@ func resourceArmLinuxVirtualMachineScaleSetUpdate(d *schema.ResourceData, meta i
 		updateConfig = true
 		updateInstances = d.HasChange("sku") // TODO: should this be conditional upon it being manual too?
 
-		update.Sku = &compute.Sku{
-			Name:     utils.String(d.Get("sku").(string)),
-			Tier:     utils.String("Standard"),
-			Capacity: utils.Int64(int64(d.Get("instances").(int))),
+		update.Sku = &compute.Sku{}
+
+		if d.HasChange("sku") {
+			update.Sku.Name = utils.String(d.Get("sku").(string))
+		}
+
+		if d.HasChange("instances") {
+			update.Sku.Capacity = utils.Int64(int64(d.Get("instances").(int)))
 		}
 	}
 
