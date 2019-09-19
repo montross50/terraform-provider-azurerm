@@ -13,6 +13,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/internal/features"
 	computeSvc "github.com/terraform-providers/terraform-provider-azurerm/azurerm/internal/services/compute"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/internal/tags"
+	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/internal/tf/base64"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/utils"
 )
 
@@ -85,6 +86,8 @@ func resourceArmLinuxVirtualMachineScaleSet() *schema.Resource {
 				// (e.g. 1-15 for Windows, 1-63 for Linux)
 				ValidateFunc: computeSvc.ValidateLinuxName,
 			},
+
+			"custom_data": base64.OptionalSchema(),
 
 			"disable_password_authentication": {
 				Type:     schema.TypeBool,
@@ -297,7 +300,7 @@ func resourceArmLinuxVirtualMachineScaleSetCreate(d *schema.ResourceData, meta i
 					PublicKeys: &sshKeys,
 				},
 			},
-			// TODO: customData & secrets
+			// TODO: secrets
 		},
 		// TODO: DiagnosticsProfile:
 		NetworkProfile: networkProfile,
@@ -310,6 +313,10 @@ func resourceArmLinuxVirtualMachineScaleSetCreate(d *schema.ResourceData, meta i
 
 	if adminPassword, ok := d.GetOk("admin_password"); ok {
 		virtualMachineProfile.OsProfile.AdminPassword = utils.String(adminPassword.(string))
+	}
+
+	if v, ok := d.GetOk("custom_data"); ok {
+		virtualMachineProfile.OsProfile.CustomData = utils.String(v.(string))
 	}
 
 	// TODO: confirm this in the API
@@ -409,8 +416,8 @@ func resourceArmLinuxVirtualMachineScaleSetUpdate(d *schema.ResourceData, meta i
 		},
 	}
 
-	// TODO: or customData or secrets
-	if d.HasChange("admin_ssh_key") || d.HasChange("disable_password_authentication") || d.HasChange("provision_vm_agent") {
+	// TODO: secrets
+	if d.HasChange("admin_ssh_key") || d.HasChange("custom_data") || d.HasChange("disable_password_authentication") || d.HasChange("provision_vm_agent") {
 		updateConfig = true
 
 		sshKeysRaw := d.Get("admin_ssh_key").(*schema.Set).List()
@@ -423,6 +430,11 @@ func resourceArmLinuxVirtualMachineScaleSetUpdate(d *schema.ResourceData, meta i
 					PublicKeys: &sshKeys,
 				},
 			},
+		}
+
+		if v, ok := d.GetOk("custom_data"); ok {
+			update.VirtualMachineProfile.OsProfile.CustomData = utils.String(v.(string))
+			// TODO: if we update the customData do we need to cycle the nodes?
 		}
 	}
 
@@ -442,6 +454,8 @@ func resourceArmLinuxVirtualMachineScaleSetUpdate(d *schema.ResourceData, meta i
 	}
 
 	// TODO: diags
+
+	updateInstances := false
 
 	if d.HasChange("tags") {
 		updateConfig = true
@@ -468,7 +482,14 @@ func resourceArmLinuxVirtualMachineScaleSetUpdate(d *schema.ResourceData, meta i
 	// TODO: if rolling the image and there's a manual healthcheck should we cycle this here? flag?
 	// client.Reimage()
 	// ConvertToSinglePlacementGroup
-	// if we update the Sku we also need to roll the instances via `UpdateInstances`
+
+	// if we update the SKU, we also need to subsequently roll the instances using the `UpdateInstances` API
+	if updateInstances {
+		// TODO: retrieve all the instances, then roll them one at a time
+		// looks like this can be found in the VMScaleSetsVMClient
+		// providers/Microsoft.Compute/virtualMachineScaleSets/tom-dev6/virtualMachines which exposes 'isLatestModel'
+		// client.UpdateInstances()
+	}
 
 	return resourceArmLinuxVirtualMachineScaleSetRead(d, meta)
 }
