@@ -199,7 +199,6 @@ func TestAccAzureRMLinuxVirtualMachineScaleSet_otherVMAgent(t *testing.T) {
 		CheckDestroy: testCheckAzureRMLinuxVirtualMachineScaleSetDestroy,
 		Steps: []resource.TestStep{
 			{
-				// enabled
 				Config: testAccAzureRMLinuxVirtualMachineScaleSet_otherVMAgent(ri, location, true),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMLinuxVirtualMachineScaleSetExists(resourceName),
@@ -214,25 +213,22 @@ func TestAccAzureRMLinuxVirtualMachineScaleSet_otherVMAgent(t *testing.T) {
 					"admin_password",
 				},
 			},
+		},
+	})
+}
+
+func TestAccAzureRMLinuxVirtualMachineScaleSet_otherVMAgentDisabled(t *testing.T) {
+	resourceName := "azurerm_linux_virtual_machine_scale_set.test"
+	ri := tf.AccRandTimeInt()
+	location := testLocation()
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMLinuxVirtualMachineScaleSetDestroy,
+		Steps: []resource.TestStep{
 			{
-				// disabled
 				Config: testAccAzureRMLinuxVirtualMachineScaleSet_otherVMAgent(ri, location, false),
-				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMLinuxVirtualMachineScaleSetExists(resourceName),
-				),
-			},
-			{
-				ResourceName:      resourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateVerifyIgnore: []string{
-					// not returned from the API
-					"admin_password",
-				},
-			},
-			{
-				// enabled
-				Config: testAccAzureRMLinuxVirtualMachineScaleSet_otherVMAgent(ri, location, true),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMLinuxVirtualMachineScaleSetExists(resourceName),
 				),
@@ -416,7 +412,7 @@ resource "azurerm_linux_virtual_machine_scale_set" "test" {
   }
 
   tags {
-    "artist" = "Billy"
+    artist = "Billy"
   }
 }
 `, template, rInt)
@@ -461,8 +457,8 @@ resource "azurerm_linux_virtual_machine_scale_set" "test" {
   }
 
   tags {
-    "artist" = "Billy"
-    "when"   = "we all fall asleep"
+    artist = "Billy"
+    when   = "we all fall asleep"
   }
 }
 `, template, rInt)

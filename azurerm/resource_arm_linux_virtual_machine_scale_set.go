@@ -115,12 +115,6 @@ func resourceArmLinuxVirtualMachineScaleSet() *schema.Resource {
 				Default:  false,
 			},
 
-			// TODO: if this is only applicable for Availability Set should we ditch it?
-			"platform_fault_domain_count": {
-				Type:     schema.TypeInt,
-				Optional: true,
-			},
-
 			"priority": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -135,8 +129,9 @@ func resourceArmLinuxVirtualMachineScaleSet() *schema.Resource {
 			"provision_vm_agent": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  true,
 				// TODO: check this default
+				Default:  true,
+				ForceNew: true,
 			},
 
 			"proximity_placement_group_id": {
@@ -275,6 +270,7 @@ func resourceArmLinuxVirtualMachineScaleSetCreate(d *schema.ResourceData, meta i
 	networkProfile := &compute.VirtualMachineScaleSetNetworkProfile{
 		NetworkInterfaceConfigurations: networkInterfaces,
 	}
+	priority := compute.VirtualMachinePriorityTypes(d.Get("priority").(string))
 	upgradePolicy := compute.UpgradePolicy{
 		AutomaticOSUpgradePolicy: automaticOSUpgradePolicy,
 		Mode:                     upgradeMode,
@@ -290,7 +286,7 @@ func resourceArmLinuxVirtualMachineScaleSetCreate(d *schema.ResourceData, meta i
 	dataDisks := make([]compute.VirtualMachineScaleSetDataDisk, 0)
 
 	virtualMachineProfile := compute.VirtualMachineScaleSetVMProfile{
-		Priority: compute.VirtualMachinePriorityTypes(d.Get("priority").(string)),
+		Priority: priority,
 		OsProfile: &compute.VirtualMachineScaleSetOSProfile{
 			AdminUsername:      utils.String(d.Get("admin_username").(string)),
 			ComputerNamePrefix: utils.String(computerNamePrefix),
@@ -326,6 +322,8 @@ func resourceArmLinuxVirtualMachineScaleSetCreate(d *schema.ResourceData, meta i
 			return fmt.Errorf("An `eviction_policy` can only be specified when `priority` is set to `low`")
 		}
 		virtualMachineProfile.EvictionPolicy = compute.VirtualMachineEvictionPolicyTypes(evictionPolicyRaw.(string))
+	} else if priority == compute.Low {
+		return fmt.Errorf("An `eviction_policy` must be specified when `priority` is set to `low`")
 	}
 
 	props := compute.VirtualMachineScaleSet{
@@ -354,10 +352,6 @@ func resourceArmLinuxVirtualMachineScaleSetCreate(d *schema.ResourceData, meta i
 		props.VirtualMachineScaleSetProperties.ProximityPlacementGroup = &compute.SubResource{
 			ID: utils.String(v.(string)),
 		}
-	}
-
-	if v := d.Get("platform_fault_domain_count").(int); v > 0 {
-		props.VirtualMachineScaleSetProperties.PlatformFaultDomainCount = utils.Int32(int32(v))
 	}
 
 	if v, ok := d.GetOk("zone_balance"); ok && v.(bool) {
@@ -431,6 +425,23 @@ func resourceArmLinuxVirtualMachineScaleSetUpdate(d *schema.ResourceData, meta i
 			},
 		}
 	}
+
+	// TODO: or data disk
+	if d.HasChange("os_disk") || d.HasChange("source_image_id") || d.HasChange("source_image_reference") {
+		updateConfig = true
+
+		// TODO: implement me
+		//update.VirtualMachineProfile.StorageProfile = &compute.StorageProfile{}
+	}
+
+	if d.HasChange("network_interface") {
+		updateConfig = true
+
+		// TODO: implement me
+		//update.VirtualMachineProfile.NetworkProfile
+	}
+
+	// TODO: diags
 
 	if d.HasChange("tags") {
 		updateConfig = true
@@ -512,9 +523,6 @@ func resourceArmLinuxVirtualMachineScaleSetRead(d *schema.ResourceData, meta int
 	}
 	d.Set("do_not_run_extensions_on_overprovisioned_machines", props.DoNotRunExtensionsOnOverprovisionedVMs)
 	d.Set("overprovision", props.Overprovision)
-	if props.PlatformFaultDomainCount != nil {
-		d.Set("platform_fault_domain_count", int(*props.PlatformFaultDomainCount))
-	}
 	if group := props.ProximityPlacementGroup; group != nil {
 		d.Set("proximity_placement_group_id", group.ID)
 	}
