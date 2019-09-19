@@ -456,6 +456,16 @@ func resourceArmLinuxVirtualMachineScaleSetUpdate(d *schema.ResourceData, meta i
 	// TODO: diags
 
 	updateInstances := false
+	if d.HasChange("sku") || d.HasChange("instances") {
+		updateConfig = true
+		updateInstances = d.HasChange("sku") // TODO: should this be conditional upon it being manual too?
+
+		update.Sku = &compute.Sku{
+			Name:     utils.String(d.Get("sku").(string)),
+			Tier:     utils.String("Standard"),
+			Capacity: utils.Int64(int64(d.Get("instances").(int))),
+		}
+	}
 
 	if d.HasChange("tags") {
 		updateConfig = true
@@ -483,12 +493,53 @@ func resourceArmLinuxVirtualMachineScaleSetUpdate(d *schema.ResourceData, meta i
 	// client.Reimage()
 	// ConvertToSinglePlacementGroup
 
+	// TODO: does this want to become a flag?
 	// if we update the SKU, we also need to subsequently roll the instances using the `UpdateInstances` API
 	if updateInstances {
-		// TODO: retrieve all the instances, then roll them one at a time
-		// looks like this can be found in the VMScaleSetsVMClient
-		// providers/Microsoft.Compute/virtualMachineScaleSets/tom-dev6/virtualMachines which exposes 'isLatestModel'
-		// client.UpdateInstances()
+		log.Printf("[DEBUG] Rolling the VM Instances for Linux Virtual Machine Scale Set %q (Resource Group %q)..", name, resourceGroup)
+		instancesClient := meta.(*ArmClient).compute.VMScaleSetVMsClient
+		instances, err := instancesClient.ListComplete(ctx, resourceGroup, name, "", "", "")
+		if err != nil {
+			return fmt.Errorf("Error listing VM Instances for Linux Virtual Machine Scale Set %q (Resource Group %q): %+v", name, resourceGroup, err)
+		}
+
+		log.Printf("[DEBUG] Determining instances to roll..")
+		instanceIdsToRoll := make([]string, 0)
+		for instances.NotDone() {
+			instance := instances.Value()
+			props := instance.VirtualMachineScaleSetVMProperties
+			if props != nil && instance.InstanceID != nil {
+				latestModel := props.LatestModelApplied
+				if latestModel != nil || !*latestModel {
+					instanceIdsToRoll = append(instanceIdsToRoll, *instance.InstanceID)
+				}
+			}
+
+			if err := instances.NextWithContext(ctx); err != nil {
+				return fmt.Errorf("Error enumerating instances: %s", err)
+			}
+		}
+
+		// there's a performance enhancement to do batches here, but this is fine for a first pass
+		for _, instanceId := range instanceIdsToRoll {
+			log.Printf("[DEBUG] Rolling instance %q..", instanceId)
+			ids := compute.VirtualMachineScaleSetVMInstanceRequiredIDs{
+				InstanceIds: &[]string{
+					instanceId,
+				},
+			}
+			future, err := client.UpdateInstances(ctx, resourceGroup, name, ids)
+			if err != nil {
+				return fmt.Errorf("Error rolling Instance %q (Linux VM Scale Set %q / Resource Group %q): %+v", instanceId, name, resourceGroup, err)
+			}
+
+			if err = future.WaitForCompletionRef(ctx, client.Client); err != nil {
+				return fmt.Errorf("Error waiting for roll of Instance %q (Linux VM Scale Set %q / Resource Group %q): %+v", instanceId, name, resourceGroup, err)
+			}
+			log.Printf("[DEBUG] Rolled instance %q..", instanceId)
+		}
+
+		log.Printf("[DEBUG] Rolled the VM Instances for Linux Virtual Machine Scale Set %q (Resource Group %q).", name, resourceGroup)
 	}
 
 	return resourceArmLinuxVirtualMachineScaleSetRead(d, meta)
