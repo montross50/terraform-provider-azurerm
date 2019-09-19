@@ -9,6 +9,7 @@ import (
 )
 
 // TODO: secrets
+// TODO: Billing Profile for Low Priority VMSS (presumably start at 0 scale and work up?)
 
 func TestAccAzureRMLinuxVirtualMachineScaleSet_otherComputerNamePrefix(t *testing.T) {
 	resourceName := "azurerm_linux_virtual_machine_scale_set.test"

@@ -142,6 +142,7 @@ func resourceArmLinuxVirtualMachineScaleSet() *schema.Resource {
 			"proximity_placement_group_id": {
 				Type:         schema.TypeString,
 				Optional:     true,
+				ForceNew:     true,
 				ValidateFunc: azure.ValidateResourceID,
 			},
 
