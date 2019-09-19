@@ -411,7 +411,7 @@ resource "azurerm_linux_virtual_machine_scale_set" "test" {
     }
   }
 
-  tags {
+  tags = {
     artist = "Billy"
   }
 }
@@ -456,7 +456,7 @@ resource "azurerm_linux_virtual_machine_scale_set" "test" {
     }
   }
 
-  tags {
+  tags = {
     artist = "Billy"
     when   = "we all fall asleep"
   }
