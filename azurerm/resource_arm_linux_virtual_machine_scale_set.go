@@ -532,6 +532,7 @@ func resourceArmLinuxVirtualMachineScaleSetRead(d *schema.ResourceData, meta int
 
 	var healthProbeId *string
 	if profile := props.VirtualMachineProfile; profile != nil {
+		d.Set("eviction_policy", string(profile.EvictionPolicy))
 		d.Set("priority", string(profile.Priority))
 
 		if storageProfile := profile.StorageProfile; storageProfile != nil {
