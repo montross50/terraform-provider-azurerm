@@ -7,3 +7,4 @@ package azurerm
 // changing sku
 // overprovision
 // proximity placement group
+// autoscaling integration?
