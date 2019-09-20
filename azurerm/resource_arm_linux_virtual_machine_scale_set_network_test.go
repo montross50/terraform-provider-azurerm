@@ -96,6 +96,35 @@ func TestAccAzureRMLinuxVirtualMachineScaleSet_networkAcceleratedNetworkingUpdat
 	})
 }
 
+func TestAccAzureRMLinuxVirtualMachineScaleSet_networkApplicationGateway(t *testing.T) {
+	resourceName := "azurerm_linux_virtual_machine_scale_set.test"
+	ri := tf.AccRandTimeInt()
+	location := testLocation()
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMLinuxVirtualMachineScaleSetDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAzureRMLinuxVirtualMachineScaleSet_networkApplicationGateway(ri, location),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMLinuxVirtualMachineScaleSetExists(resourceName),
+				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					// not returned from the API
+					"admin_password",
+				},
+			},
+		},
+	})
+}
+
 func TestAccAzureRMLinuxVirtualMachineScaleSet_networkApplicationSecurityGroup(t *testing.T) {
 	resourceName := "azurerm_linux_virtual_machine_scale_set.test"
 	ri := tf.AccRandTimeInt()
@@ -545,7 +574,6 @@ func TestAccAzureRMLinuxVirtualMachineScaleSet_networkRenamed(t *testing.T) {
 // public IP per instance from a Public IP Prefix
 // Load Balancer
 // NIC specific DNS Servers
-// Application Gateway
 
 func testAccAzureRMLinuxVirtualMachineScaleSet_networkAcceleratedNetworking(rInt int, location string, enabled bool) string {
 	template := testAccAzureRMLinuxVirtualMachineScaleSet_template(rInt, location)
@@ -587,6 +615,48 @@ resource "azurerm_linux_virtual_machine_scale_set" "test" {
   }
 }
 `, template, rInt, enabled)
+}
+
+func testAccAzureRMLinuxVirtualMachineScaleSet_networkApplicationGateway(rInt int, location string) string {
+	template := testAccAzureRMApplicationGateway_basic(rInt, location)
+	return fmt.Sprintf(`
+%s
+
+resource "azurerm_linux_virtual_machine_scale_set" "test" {
+  name                = "acctestvmss-%d"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+  sku                 = "Standard_F2"
+  instances           = 1
+  admin_username      = "adminuser"
+  admin_password      = "P@ssword1234!"
+  disable_password_authentication = false
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "UbuntuServer"
+    sku       = "16.04-LTS"
+    version   = "latest"
+  }
+
+  os_disk {
+    storage_account_type = "Standard_LRS"
+    caching              = "ReadWrite"
+  }
+
+  network_interface {
+    name    = "example"
+    primary = true
+
+    ip_configuration {
+      name      = "internal"
+      primary   = true
+      subnet_id = azurerm_subnet.test.id
+      application_security_group_ids = [ azurerm_application_gateway.test.id ]
+    }
+  }
+}
+`, template, rInt)
 }
 
 func testAccAzureRMLinuxVirtualMachineScaleSet_networkApplicationSecurityGroup(rInt int, location string) string {
