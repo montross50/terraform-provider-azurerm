@@ -1899,7 +1899,7 @@ func testAccAzureRMLinuxVirtualMachineScaleSet_networkPublicIPFromPrefix(rInt in
 resource "azurerm_public_ip_prefix" "test" {
   name                = "acctestpublicipprefix-%d"
   location            = azurerm_resource_group.test.location
-  resource_group_name = "azurerm_resource_group.test.name
+  resource_group_name = azurerm_resource_group.test.name
 }
 
 resource "azurerm_linux_virtual_machine_scale_set" "test" {
