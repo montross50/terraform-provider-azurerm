@@ -348,7 +348,7 @@ resource "azurerm_linux_virtual_machine_scale_set" "test" {
 
   os_disk {
     storage_account_type = "Standard_LRS"
-    caching              = "ReadWrite"
+    caching              = "ReadOnly"
 
     diff_disk_settings {
       option = "Local"
