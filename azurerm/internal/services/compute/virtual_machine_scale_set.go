@@ -328,9 +328,6 @@ func expandVirtualMachineScaleSetIPConfiguration(raw map[string]interface{}) com
 	ipConfiguration := compute.VirtualMachineScaleSetIPConfiguration{
 		Name: utils.String(raw["name"].(string)),
 		VirtualMachineScaleSetIPConfigurationProperties: &compute.VirtualMachineScaleSetIPConfigurationProperties{
-			Subnet: &compute.APIEntityReference{
-				ID: utils.String(raw["subnet_id"].(string)),
-			},
 			Primary:                               utils.Bool(raw["primary"].(bool)),
 			PrivateIPAddressVersion:               compute.IPVersion(raw["version"].(string)),
 			ApplicationGatewayBackendAddressPools: applicationGatewayBackendAddressPoolIds,
@@ -338,6 +335,12 @@ func expandVirtualMachineScaleSetIPConfiguration(raw map[string]interface{}) com
 			LoadBalancerBackendAddressPools:       loadBalancerBackendAddressPoolIds,
 			LoadBalancerInboundNatPools:           loadBalancerInboundNatPoolIds,
 		},
+	}
+
+	if subnetId := raw["subnet_id"].(string); subnetId != "" {
+		ipConfiguration.VirtualMachineScaleSetIPConfigurationProperties.Subnet = &compute.APIEntityReference{
+			ID: utils.String(subnetId),
+		}
 	}
 
 	publicIPConfigsRaw := raw["public_ip_address"].([]interface{})
@@ -372,8 +375,10 @@ func expandVirtualMachineScaleSetPublicIPAddress(raw map[string]interface{}) *co
 		},
 	}
 
-	publicIPAddressConfig.VirtualMachineScaleSetPublicIPAddressConfigurationProperties.PublicIPPrefix = &compute.SubResource{
-		ID: utils.String(raw["public_ip_prefix_id"].(string)),
+	if publicIPPrefixID := raw["public_ip_prefix_id"].(string); publicIPPrefixID != "" {
+		publicIPAddressConfig.VirtualMachineScaleSetPublicIPAddressConfigurationProperties.PublicIPPrefix = &compute.SubResource{
+			ID: utils.String(publicIPPrefixID),
+		}
 	}
 
 	return &publicIPAddressConfig
