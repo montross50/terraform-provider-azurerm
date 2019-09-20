@@ -1604,7 +1604,7 @@ resource "azurerm_linux_virtual_machine_scale_set" "test" {
     }
   }
 }
-`, template, rInt, rInt)
+`, template, rInt, rInt, rInt)
 }
 
 func testAccAzureRMLinuxVirtualMachineScaleSet_networkNetworkSecurityGroup(rInt int, location string) string {
@@ -1841,7 +1841,7 @@ resource "azurerm_linux_virtual_machine_scale_set" "test" {
     }
   }
 }
-`, template, rInt, rInt)
+`, template, rInt)
 }
 
 func testAccAzureRMLinuxVirtualMachineScaleSet_networkPublicIPDomainNameLabel(rInt int, location string) string {
