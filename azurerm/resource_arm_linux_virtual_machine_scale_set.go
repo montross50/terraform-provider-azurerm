@@ -78,6 +78,12 @@ func resourceArmLinuxVirtualMachineScaleSet() *schema.Resource {
 
 			"automatic_os_upgrade_policy": computeSvc.VirtualMachineScaleSetAutomatedOSUpgradePolicySchema(),
 
+			"max_bid_price": {
+				Type:     schema.TypeFloat,
+				Optional: true,
+				Default:  -1,
+			},
+
 			"computer_name_prefix": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -314,6 +320,16 @@ func resourceArmLinuxVirtualMachineScaleSetCreate(d *schema.ResourceData, meta i
 		virtualMachineProfile.OsProfile.AdminPassword = utils.String(adminPassword.(string))
 	}
 
+	if v, ok := d.Get("max_bid_price").(float64); ok && v > 0 {
+		if priority != compute.Low {
+			return fmt.Errorf("`max_bid_price` can only be configured when `priority` is set to `Low`")
+		}
+
+		virtualMachineProfile.BillingProfile = &compute.BillingProfile{
+			MaxPrice: utils.Float(v),
+		}
+	}
+
 	if v, ok := d.GetOk("custom_data"); ok {
 		virtualMachineProfile.OsProfile.CustomData = utils.String(v.(string))
 	}
@@ -414,6 +430,17 @@ func resourceArmLinuxVirtualMachineScaleSetUpdate(d *schema.ResourceData, meta i
 		VirtualMachineScaleSetUpdateProperties: &compute.VirtualMachineScaleSetUpdateProperties{
 			VirtualMachineProfile: &compute.VirtualMachineScaleSetUpdateVMProfile{},
 		},
+	}
+
+	if d.HasChange("max_bid_price") {
+		priority := compute.VirtualMachinePriorityTypes(d.Get("priority").(string))
+		if priority != compute.Low {
+			return fmt.Errorf("`max_bid_price` can only be configured when `priority` is set to `Low`")
+		}
+
+		update.VirtualMachineProfile.BillingProfile = &compute.BillingProfile{
+			MaxPrice: utils.Float(d.Get("max_bid_price").(float64)),
+		}
 	}
 
 	if d.HasChange("single_placement_group") {
@@ -633,6 +660,7 @@ func resourceArmLinuxVirtualMachineScaleSetRead(d *schema.ResourceData, meta int
 	if err := d.Set("additional_capabilities", computeSvc.FlattenVirtualMachineScaleSetAdditionalCapabilities(props.AdditionalCapabilities)); err != nil {
 		return fmt.Errorf("Error setting `additional_capabilities`: %+v", props.AdditionalCapabilities)
 	}
+
 	d.Set("do_not_run_extensions_on_overprovisioned_machines", props.DoNotRunExtensionsOnOverprovisionedVMs)
 	d.Set("overprovision", props.Overprovision)
 	if group := props.ProximityPlacementGroup; group != nil {
@@ -644,6 +672,10 @@ func resourceArmLinuxVirtualMachineScaleSetRead(d *schema.ResourceData, meta int
 
 	var healthProbeId *string
 	if profile := props.VirtualMachineProfile; profile != nil {
+		if billing := profile.BillingProfile; billing != nil {
+			d.Set("max_bid_price", billing.MaxPrice)
+		}
+
 		d.Set("eviction_policy", string(profile.EvictionPolicy))
 		d.Set("priority", string(profile.Priority))
 
