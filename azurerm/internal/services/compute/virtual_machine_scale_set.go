@@ -673,7 +673,7 @@ func VirtualMachineScaleSetSourceImageReferenceSchema() *schema.Schema {
 }
 
 func ExpandVirtualMachineScaleSetSourceImageReference(referenceInput []interface{}, imageId string) (*compute.ImageReference, error) {
-	if imageId == "" {
+	if imageId != "" {
 		return &compute.ImageReference{
 			ID: utils.String(imageId),
 		}, nil
