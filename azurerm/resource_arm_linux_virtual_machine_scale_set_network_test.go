@@ -1983,7 +1983,7 @@ resource "azurerm_linux_virtual_machine_scale_set" "test" {
         name                 = "first"
 
         ip_tag {
-          FirstPartyUsage = "/Sql""
+          FirstPartyUsage = "/Sql"
         }
       }
     }
