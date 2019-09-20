@@ -503,8 +503,11 @@ func resourceArmLinuxVirtualMachineScaleSetUpdate(d *schema.ResourceData, meta i
 	if d.HasChange("network_interface") {
 		updateConfig = true
 
-		// TODO: implement me
-		//update.VirtualMachineProfile.NetworkProfile
+		networkInterfacesRaw := d.Get("network_interface").([]interface{})
+		networkInterfaces := computeSvc.ExpandVirtualMachineScaleSetNetworkInterfaceUpdate(networkInterfacesRaw)
+		update.VirtualMachineProfile.NetworkProfile = &compute.VirtualMachineScaleSetUpdateNetworkProfile{
+			NetworkInterfaceConfigurations: networkInterfaces,
+		}
 	}
 
 	// TODO: diags

@@ -234,16 +234,19 @@ func virtualMachineScaleSetPublicIPAddressSchema() *schema.Schema {
 					// TODO: does this want to be a Set?
 					Type:     schema.TypeList,
 					Optional: true,
+					ForceNew: true,
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
 							"tag": {
 								Type:         schema.TypeString,
 								Required:     true,
+								ForceNew:     true,
 								ValidateFunc: validate.NoEmptyStrings,
 							},
 							"type": {
 								Type:         schema.TypeString,
 								Required:     true,
+								ForceNew:     true,
 								ValidateFunc: validate.NoEmptyStrings,
 							},
 						},
@@ -252,6 +255,7 @@ func virtualMachineScaleSetPublicIPAddressSchema() *schema.Schema {
 				"public_ip_prefix_id": {
 					Type:         schema.TypeString,
 					Optional:     true,
+					ForceNew:     true,
 					ValidateFunc: azure.ValidateResourceIDOrEmpty,
 				},
 			},
@@ -301,18 +305,6 @@ func ExpandVirtualMachineScaleSetNetworkInterface(input []interface{}) *[]comput
 }
 
 func expandVirtualMachineScaleSetIPConfiguration(raw map[string]interface{}) compute.VirtualMachineScaleSetIPConfiguration {
-	var expandIDsToSubResources = func(input []interface{}) *[]compute.SubResource {
-		ids := make([]compute.SubResource, 0)
-
-		for _, v := range input {
-			ids = append(ids, compute.SubResource{
-				ID: utils.String(v.(string)),
-			})
-		}
-
-		return &ids
-	}
-
 	applicationGatewayBackendAddressPoolIdsRaw := raw["application_gateway_backend_address_pool_ids"].(*schema.Set).List()
 	applicationGatewayBackendAddressPoolIds := expandIDsToSubResources(applicationGatewayBackendAddressPoolIdsRaw)
 
@@ -379,6 +371,112 @@ func expandVirtualMachineScaleSetPublicIPAddress(raw map[string]interface{}) *co
 		publicIPAddressConfig.VirtualMachineScaleSetPublicIPAddressConfigurationProperties.PublicIPPrefix = &compute.SubResource{
 			ID: utils.String(publicIPPrefixID),
 		}
+	}
+
+	return &publicIPAddressConfig
+}
+
+func ExpandVirtualMachineScaleSetNetworkInterfaceUpdate(input []interface{}) *[]compute.VirtualMachineScaleSetUpdateNetworkConfiguration {
+	output := make([]compute.VirtualMachineScaleSetUpdateNetworkConfiguration, 0)
+
+	for _, v := range input {
+		raw := v.(map[string]interface{})
+
+		dnsServers := utils.ExpandStringSlice(raw["dns_servers"].([]interface{}))
+
+		ipConfigurations := make([]compute.VirtualMachineScaleSetUpdateIPConfiguration, 0)
+		ipConfigurationsRaw := raw["ip_configuration"].([]interface{})
+		for _, configV := range ipConfigurationsRaw {
+			configRaw := configV.(map[string]interface{})
+			ipConfiguration := expandVirtualMachineScaleSetIPConfigurationUpdate(configRaw)
+			ipConfigurations = append(ipConfigurations, ipConfiguration)
+		}
+
+		config := compute.VirtualMachineScaleSetUpdateNetworkConfiguration{
+			Name: utils.String(raw["name"].(string)),
+			VirtualMachineScaleSetUpdateNetworkConfigurationProperties: &compute.VirtualMachineScaleSetUpdateNetworkConfigurationProperties{
+				DNSSettings: &compute.VirtualMachineScaleSetNetworkConfigurationDNSSettings{
+					DNSServers: dnsServers,
+				},
+				EnableAcceleratedNetworking: utils.Bool(raw["enable_accelerated_networking"].(bool)),
+				EnableIPForwarding:          utils.Bool(raw["enable_ip_forwarding"].(bool)),
+				IPConfigurations:            &ipConfigurations,
+				Primary:                     utils.Bool(raw["primary"].(bool)),
+			},
+		}
+
+		if nsgId := raw["network_security_group_id"].(string); nsgId != "" {
+			config.VirtualMachineScaleSetUpdateNetworkConfigurationProperties.NetworkSecurityGroup = &compute.SubResource{
+				ID: utils.String(nsgId),
+			}
+		}
+
+		output = append(output, config)
+	}
+
+	return &output
+}
+
+func expandVirtualMachineScaleSetIPConfigurationUpdate(raw map[string]interface{}) compute.VirtualMachineScaleSetUpdateIPConfiguration {
+	applicationGatewayBackendAddressPoolIdsRaw := raw["application_gateway_backend_address_pool_ids"].(*schema.Set).List()
+	applicationGatewayBackendAddressPoolIds := expandIDsToSubResources(applicationGatewayBackendAddressPoolIdsRaw)
+
+	applicationSecurityGroupIdsRaw := raw["application_security_group_ids"].(*schema.Set).List()
+	applicationSecurityGroupIds := expandIDsToSubResources(applicationSecurityGroupIdsRaw)
+
+	loadBalancerBackendAddressPoolIdsRaw := raw["load_balancer_backend_address_pool_ids"].(*schema.Set).List()
+	loadBalancerBackendAddressPoolIds := expandIDsToSubResources(loadBalancerBackendAddressPoolIdsRaw)
+
+	loadBalancerInboundNatPoolIdsRaw := raw["load_balancer_inbound_nat_rules_ids"].(*schema.Set).List()
+	loadBalancerInboundNatPoolIds := expandIDsToSubResources(loadBalancerInboundNatPoolIdsRaw)
+
+	ipConfiguration := compute.VirtualMachineScaleSetUpdateIPConfiguration{
+		Name: utils.String(raw["name"].(string)),
+		VirtualMachineScaleSetUpdateIPConfigurationProperties: &compute.VirtualMachineScaleSetUpdateIPConfigurationProperties{
+			Primary:                               utils.Bool(raw["primary"].(bool)),
+			PrivateIPAddressVersion:               compute.IPVersion(raw["version"].(string)),
+			ApplicationGatewayBackendAddressPools: applicationGatewayBackendAddressPoolIds,
+			ApplicationSecurityGroups:             applicationSecurityGroupIds,
+			LoadBalancerBackendAddressPools:       loadBalancerBackendAddressPoolIds,
+			LoadBalancerInboundNatPools:           loadBalancerInboundNatPoolIds,
+		},
+	}
+
+	if subnetId := raw["subnet_id"].(string); subnetId != "" {
+		ipConfiguration.VirtualMachineScaleSetUpdateIPConfigurationProperties.Subnet = &compute.APIEntityReference{
+			ID: utils.String(subnetId),
+		}
+	}
+
+	publicIPConfigsRaw := raw["public_ip_address"].([]interface{})
+	if len(publicIPConfigsRaw) > 0 {
+		publicIPConfigRaw := publicIPConfigsRaw[0].(map[string]interface{})
+		publicIPAddressConfig := expandVirtualMachineScaleSetPublicIPAddressUpdate(publicIPConfigRaw)
+		ipConfiguration.VirtualMachineScaleSetUpdateIPConfigurationProperties.PublicIPAddressConfiguration = publicIPAddressConfig
+	}
+
+	return ipConfiguration
+}
+
+func expandVirtualMachineScaleSetPublicIPAddressUpdate(raw map[string]interface{}) *compute.VirtualMachineScaleSetUpdatePublicIPAddressConfiguration {
+	ipTagsRaw := raw["ip_tag"].([]interface{})
+	ipTags := make([]compute.VirtualMachineScaleSetIPTag, 0)
+	for _, ipTagV := range ipTagsRaw {
+		ipTagRaw := ipTagV.(map[string]interface{})
+		ipTags = append(ipTags, compute.VirtualMachineScaleSetIPTag{
+			Tag:       utils.String(ipTagRaw["tag"].(string)),
+			IPTagType: utils.String(ipTagRaw["type"].(string)),
+		})
+	}
+
+	publicIPAddressConfig := compute.VirtualMachineScaleSetUpdatePublicIPAddressConfiguration{
+		Name: utils.String(raw["name"].(string)),
+		VirtualMachineScaleSetUpdatePublicIPAddressConfigurationProperties: &compute.VirtualMachineScaleSetUpdatePublicIPAddressConfigurationProperties{
+			DNSSettings: &compute.VirtualMachineScaleSetPublicIPAddressConfigurationDNSSettings{
+				DomainNameLabel: utils.String(raw["domain_name_label"].(string)),
+			},
+			IdleTimeoutInMinutes: utils.Int32(int32(raw["idle_timeout_in_minutes"].(int))),
+		},
 	}
 
 	return &publicIPAddressConfig
@@ -455,23 +553,6 @@ func flattenVirtualMachineScaleSetIPConfiguration(input compute.VirtualMachineSc
 	var publicIPAddresses []interface{}
 	if input.PublicIPAddressConfiguration != nil {
 		publicIPAddresses = append(publicIPAddresses, flattenVirtualMachineScaleSetPublicIPAddress(*input.PublicIPAddressConfiguration))
-	}
-
-	var flattenSubResourcesToIDs = func(input *[]compute.SubResource) []interface{} {
-		ids := make([]interface{}, 0)
-		if input == nil {
-			return ids
-		}
-
-		for _, v := range *input {
-			if v.ID == nil {
-				continue
-			}
-
-			ids = append(ids, *v.ID)
-		}
-
-		return ids
 	}
 
 	applicationGatewayBackendAddressPoolIds := flattenSubResourcesToIDs(input.ApplicationGatewayBackendAddressPools)
