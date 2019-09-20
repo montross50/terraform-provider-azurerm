@@ -885,6 +885,13 @@ func testAccAzureRMLinuxVirtualMachineScaleSet_networkApplicationGateway(rInt in
 	return fmt.Sprintf(`
 %s
 
+resource "azurerm_subnet" "other" {
+  name                 = "other"
+  resource_group_name  = "${azurerm_resource_group.test.name}"
+  virtual_network_name = "${azurerm_virtual_network.test.name}"
+  address_prefix       = "10.0.1.0/24"
+}
+
 resource "azurerm_linux_virtual_machine_scale_set" "test" {
   name                = "acctestvmss-%d"
   resource_group_name = azurerm_resource_group.test.name
@@ -914,7 +921,7 @@ resource "azurerm_linux_virtual_machine_scale_set" "test" {
     ip_configuration {
       name      = "internal"
       primary   = true
-      subnet_id = azurerm_subnet.test.id
+      subnet_id = azurerm_subnet.other.id
       application_gateway_backend_address_pool_ids = [ azurerm_application_gateway.test.backend_address_pool.0.id ]
     }
   }
