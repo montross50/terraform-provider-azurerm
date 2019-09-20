@@ -95,6 +95,7 @@ func VirtualMachineScaleSetNetworkInterfaceSchema() *schema.Schema {
 				"name": {
 					Type:         schema.TypeString,
 					Required:     true,
+					ForceNew:     true,
 					ValidateFunc: validation.NoZeroValues,
 				},
 				"ip_configuration": virtualMachineScaleSetIPConfigurationSchema(),

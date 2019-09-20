@@ -548,50 +548,6 @@ func TestAccAzureRMLinuxVirtualMachineScaleSet_networkNetworkSecurityGroupUpdate
 	})
 }
 
-func TestAccAzureRMLinuxVirtualMachineScaleSet_networkRenamed(t *testing.T) {
-	resourceName := "azurerm_linux_virtual_machine_scale_set.test"
-	ri := tf.AccRandTimeInt()
-	location := testLocation()
-
-	resource.ParallelTest(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testCheckAzureRMLinuxVirtualMachineScaleSetDestroy,
-		Steps: []resource.TestStep{
-			{
-				Config: testAccAzureRMLinuxVirtualMachineScaleSet_networkPrivate(ri, location),
-				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMLinuxVirtualMachineScaleSetExists(resourceName),
-				),
-			},
-			{
-				ResourceName:      resourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateVerifyIgnore: []string{
-					// not returned from the API
-					"admin_password",
-				},
-			},
-			{
-				Config: testAccAzureRMLinuxVirtualMachineScaleSet_networkRenamed(ri, location),
-				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMLinuxVirtualMachineScaleSetExists(resourceName),
-				),
-			},
-			{
-				ResourceName:      resourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateVerifyIgnore: []string{
-					// not returned from the API
-					"admin_password",
-				},
-			},
-		},
-	})
-}
-
 // multiple nics
 // multiple nics with IPv4 & IPv6
 // single nic multiple ip configs
@@ -1229,45 +1185,4 @@ resource "azurerm_linux_virtual_machine_scale_set" "test" {
   }
 }
 `, template, rInt, rInt, rInt)
-}
-
-func testAccAzureRMLinuxVirtualMachineScaleSet_networkRenamed(rInt int, location string) string {
-	template := testAccAzureRMLinuxVirtualMachineScaleSet_template(rInt, location)
-	return fmt.Sprintf(`
-%s
-
-resource "azurerm_linux_virtual_machine_scale_set" "test" {
-  name                = "acctestvmss-%d"
-  resource_group_name = azurerm_resource_group.test.name
-  location            = azurerm_resource_group.test.location
-  sku                 = "Standard_F2"
-  instances           = 1
-  admin_username      = "adminuser"
-  admin_password      = "P@ssword1234!"
-  disable_password_authentication = false
-
-  source_image_reference {
-    publisher = "Canonical"
-    offer     = "UbuntuServer"
-    sku       = "16.04-LTS"
-    version   = "latest"
-  }
-
-  os_disk {
-    storage_account_type = "Standard_LRS"
-    caching              = "ReadWrite"
-  }
-
-  network_interface {
-    name    = "panda"
-    primary = true
-
-    ip_configuration {
-      name      = "internal"
-      primary   = true
-      subnet_id = azurerm_subnet.test.id
-    }
-  }
-}
-`, template, rInt)
 }
