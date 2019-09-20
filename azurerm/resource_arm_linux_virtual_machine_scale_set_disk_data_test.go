@@ -8,11 +8,6 @@ import (
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/tf"
 )
 
-/*
-Write Accelerator Enabled requires Premium disks + Standard_F2s_v2
-ultra_ssd_enabled <- requires a specific VM size
-*/
-
 func TestAccAzureRMLinuxVirtualMachineScaleSet_disksDataDiskBasic(t *testing.T) {
 	resourceName := "azurerm_linux_virtual_machine_scale_set.test"
 	ri := tf.AccRandTimeInt()
@@ -369,6 +364,35 @@ func TestAccAzureRMLinuxVirtualMachineScaleSet_disksDataDiskStorageAccountTypeUl
 	})
 }
 
+func TestAccAzureRMLinuxVirtualMachineScaleSet_disksDataDiskWriteAcceleratorEnabled(t *testing.T) {
+	resourceName := "azurerm_linux_virtual_machine_scale_set.test"
+	ri := tf.AccRandTimeInt()
+	location := testLocation()
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMLinuxVirtualMachineScaleSetDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAzureRMLinuxVirtualMachineScaleSet_disksDataDiskWriteAcceleratorEnabled(ri, location),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMLinuxVirtualMachineScaleSetExists(resourceName),
+				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					// not returned from the API
+					"admin_password",
+				},
+			},
+		},
+	})
+}
+
 func testAccAzureRMLinuxVirtualMachineScaleSet_disksDataDiskBasic(rInt int, location string) string {
 	template := testAccAzureRMLinuxVirtualMachineScaleSet_template(rInt, location)
 	return fmt.Sprintf(`
@@ -652,6 +676,55 @@ resource "azurerm_linux_virtual_machine_scale_set" "test" {
 
   additional_capabilities {
     ultra_ssd_enabled = true
+  }
+
+  network_interface {
+    name    = "example"
+    primary = true
+
+    ip_configuration {
+      name      = "internal"
+      primary   = true
+      subnet_id = azurerm_subnet.test.id
+    }
+  }
+}
+`, template, rInt)
+}
+
+func testAccAzureRMLinuxVirtualMachineScaleSet_disksDataDiskWriteAcceleratorEnabled(rInt int, location string) string {
+	template := testAccAzureRMLinuxVirtualMachineScaleSet_template(rInt, location)
+	return fmt.Sprintf(`
+%s
+
+resource "azurerm_linux_virtual_machine_scale_set" "test" {
+  name                = "acctestvmss-%d"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+  sku                 = "Standard_M8ms"
+  instances           = 1
+  admin_username      = "adminuser"
+  admin_password      = "P@ssword1234!"
+  disable_password_authentication = false
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "UbuntuServer"
+    sku       = "16.04-LTS"
+    version   = "latest"
+  }
+
+  os_disk {
+    storage_account_type = "Premium_LRS"
+    caching              = "None"
+  }
+
+  data_disk {
+    storage_account_type = "Premium_LRS"
+    caching              = "None"
+    disk_size_gb         = 10
+    lun                  = 10
+    write_accelerator_enabled = true
   }
 
   network_interface {
