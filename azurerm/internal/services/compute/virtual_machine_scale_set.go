@@ -495,6 +495,63 @@ func flattenVirtualMachineScaleSetPublicIPAddress(input compute.VirtualMachineSc
 	}
 }
 
+func VirtualMachineScaleSetDataDiskSchema() *schema.Schema {
+	return &schema.Schema{
+		// TODO: does this want to be a Set?
+		Type:     schema.TypeList,
+		Optional: true,
+		Elem: &schema.Resource{
+			Schema: map[string]*schema.Schema{
+				"caching": {
+					Type:     schema.TypeString,
+					Required: true,
+					ValidateFunc: validation.StringInSlice([]string{
+						string(compute.CachingTypesNone),
+						string(compute.CachingTypesReadOnly),
+						string(compute.CachingTypesReadWrite),
+					}, false),
+				},
+				"lun": {
+					Type:         schema.TypeInt,
+					Required:     true,
+					ValidateFunc: validation.IntBetween(0, 2000), // TODO: confirm upper bounds
+				},
+				"storage_account_type": {
+					Type:     schema.TypeString,
+					Required: true,
+					ValidateFunc: validation.StringInSlice([]string{
+						string(compute.StorageAccountTypesPremiumLRS),
+						string(compute.StorageAccountTypesStandardLRS),
+						string(compute.StorageAccountTypesStandardSSDLRS),
+						string(compute.StorageAccountTypesUltraSSDLRS),
+					}, false),
+				},
+
+				"disk_size_gb": {
+					Type:         schema.TypeInt,
+					Optional:     true,
+					ValidateFunc: validation.IntBetween(0, 1023),
+				},
+				"write_accelerator_enabled": {
+					Type:     schema.TypeBool,
+					Optional: true,
+					Default:  false,
+				},
+			},
+		},
+	}
+}
+
+func ExpandVirtualMachineScaleSetDataDisk(input []interface{}) *[]compute.VirtualMachineScaleSetDataDisk {
+	// TODO: implement me
+	return nil
+}
+
+func FlattenVirtualMachineScaleSetDataDisk(input *[]compute.VirtualMachineScaleSetDataDisk) []interface{} {
+	// TODO: implement me
+	return []interface{}{}
+}
+
 func VirtualMachineScaleSetOSDiskSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeList,

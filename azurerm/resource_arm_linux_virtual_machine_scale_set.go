@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/validation"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/azure"
+	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/suppress"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/tf"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/validate"
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/internal/features"
@@ -91,6 +92,8 @@ func resourceArmLinuxVirtualMachineScaleSet() *schema.Resource {
 
 			"custom_data": base64.OptionalSchema(),
 
+			"data_disk": computeSvc.VirtualMachineScaleSetDataDiskSchema(),
+
 			"disable_password_authentication": {
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -144,6 +147,8 @@ func resourceArmLinuxVirtualMachineScaleSet() *schema.Resource {
 				Optional:     true,
 				ForceNew:     true,
 				ValidateFunc: azure.ValidateResourceID,
+				// the Compute API is broken and returns the Resource Group name in UPPERCASE :shrug:
+				DiffSuppressFunc: suppress.CaseDifference,
 			},
 
 			"rolling_upgrade_policy": computeSvc.VirtualMachineScaleSetRollingUpgradePolicySchema(),
@@ -279,8 +284,8 @@ func resourceArmLinuxVirtualMachineScaleSetCreate(d *schema.ResourceData, meta i
 		}
 	}
 
-	// TODO: data disks
-	dataDisks := make([]compute.VirtualMachineScaleSetDataDisk, 0)
+	dataDisksRaw := d.Get("data_disk").([]interface{})
+	dataDisks := computeSvc.ExpandVirtualMachineScaleSetDataDisk(dataDisksRaw)
 
 	virtualMachineProfile := compute.VirtualMachineScaleSetVMProfile{
 		Priority: priority,
@@ -301,7 +306,7 @@ func resourceArmLinuxVirtualMachineScaleSetCreate(d *schema.ResourceData, meta i
 		StorageProfile: &compute.VirtualMachineScaleSetStorageProfile{
 			ImageReference: sourceImageReference,
 			OsDisk:         osDisk,
-			DataDisks:      &dataDisks,
+			DataDisks:      dataDisks,
 		},
 	}
 
@@ -403,6 +408,7 @@ func resourceArmLinuxVirtualMachineScaleSetUpdate(d *schema.ResourceData, meta i
 	resourceGroup := id.Base.ResourceGroup
 
 	updateConfig := false
+	updateInstances := false
 
 	update := compute.VirtualMachineScaleSetUpdate{
 		VirtualMachineScaleSetUpdateProperties: &compute.VirtualMachineScaleSetUpdateProperties{
@@ -432,18 +438,21 @@ func resourceArmLinuxVirtualMachineScaleSetUpdate(d *schema.ResourceData, meta i
 		}
 	}
 
-	// TODO: or data disk
-	if d.HasChange("os_disk") || d.HasChange("source_image_id") || d.HasChange("source_image_reference") {
+	if d.HasChange("data_disk") || d.HasChange("os_disk") || d.HasChange("source_image_id") || d.HasChange("source_image_reference") {
 		updateConfig = true
+		updateInstances = true
 
 		storageProfile := &compute.VirtualMachineScaleSetUpdateStorageProfile{}
+
+		if d.HasChange("data_disk") {
+			dataDisksRaw := d.Get("data_disk").([]interface{})
+			storageProfile.DataDisks = computeSvc.ExpandVirtualMachineScaleSetDataDisk(dataDisksRaw)
+		}
 
 		if d.HasChange("os_disk") {
 			osDiskRaw := d.Get("os_disk").([]interface{})
 			storageProfile.OsDisk = computeSvc.ExpandVirtualMachineScaleSetOSDiskUpdate(osDiskRaw)
 		}
-
-		// TODO: data disks
 
 		if d.HasChange("source_image_id") || d.HasChange("source_image_reference") {
 			sourceImageReferenceRaw := d.Get("source_image_reference").([]interface{})
@@ -468,7 +477,6 @@ func resourceArmLinuxVirtualMachineScaleSetUpdate(d *schema.ResourceData, meta i
 
 	// TODO: diags
 
-	updateInstances := false
 	if d.HasChange("sku") || d.HasChange("instances") {
 		updateConfig = true
 
