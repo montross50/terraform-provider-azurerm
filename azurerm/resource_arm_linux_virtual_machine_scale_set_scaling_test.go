@@ -243,6 +243,97 @@ func TestAccAzureRMLinuxVirtualMachineScaleSet_scalingZonesMultiple(t *testing.T
 	})
 }
 
+func TestAccAzureRMLinuxVirtualMachineScaleSet_scalingZonesBalance(t *testing.T) {
+	resourceName := "azurerm_linux_virtual_machine_scale_set.test"
+	ri := tf.AccRandTimeInt()
+	location := testLocation()
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMLinuxVirtualMachineScaleSetDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAzureRMLinuxVirtualMachineScaleSet_scalingZonesBalance(ri, location),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMLinuxVirtualMachineScaleSetExists(resourceName),
+				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					// not returned from the API
+					"admin_password",
+				},
+			},
+		},
+	})
+}
+
+func TestAccAzureRMLinuxVirtualMachineScaleSet_scalingZonesBalanceUpdate(t *testing.T) {
+	resourceName := "azurerm_linux_virtual_machine_scale_set.test"
+	ri := tf.AccRandTimeInt()
+	location := testLocation()
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMLinuxVirtualMachineScaleSetDestroy,
+		Steps: []resource.TestStep{
+			{
+				// Disabled
+				Config: testAccAzureRMLinuxVirtualMachineScaleSet_authPassword(ri, location),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMLinuxVirtualMachineScaleSetExists(resourceName),
+				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					// not returned from the API
+					"admin_password",
+				},
+			},
+			{
+				// Enabled
+				Config: testAccAzureRMLinuxVirtualMachineScaleSet_scalingZonesBalance(ri, location),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMLinuxVirtualMachineScaleSetExists(resourceName),
+				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					// not returned from the API
+					"admin_password",
+				},
+			},
+			{
+				// Disabled
+				Config: testAccAzureRMLinuxVirtualMachineScaleSet_authPassword(ri, location),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMLinuxVirtualMachineScaleSetExists(resourceName),
+				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					// not returned from the API
+					"admin_password",
+				},
+			},
+		},
+	})
+}
+
 func testAccAzureRMLinuxVirtualMachineScaleSet_scalingProximityPlacementGroup(rInt int, location string) string {
 	template := testAccAzureRMLinuxVirtualMachineScaleSet_template(rInt, location)
 	return fmt.Sprintf(`
@@ -471,10 +562,53 @@ resource "azurerm_linux_virtual_machine_scale_set" "test" {
   resource_group_name  = azurerm_resource_group.test.name
   location             = azurerm_resource_group.test.location
   sku                  = "Standard_F2"
-  instances            = 1
+  instances            = 2
   admin_username       = "adminuser"
   admin_password       = "P@ssword1234!"
   zones                = [ "1", "2" ]
+  disable_password_authentication = false
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "UbuntuServer"
+    sku       = "16.04-LTS"
+    version   = "latest"
+  }
+
+  os_disk {
+    storage_account_type = "Standard_LRS"
+    caching              = "ReadWrite"
+  }
+
+  network_interface {
+    name    = "example"
+    primary = true
+
+    ip_configuration {
+      name      = "internal"
+      primary   = true
+      subnet_id = azurerm_subnet.test.id
+    }
+  }
+}
+`, template, rInt)
+}
+
+func testAccAzureRMLinuxVirtualMachineScaleSet_scalingZonesBalance(rInt int, location string) string {
+	template := testAccAzureRMLinuxVirtualMachineScaleSet_template(rInt, location)
+	return fmt.Sprintf(`
+%s
+
+resource "azurerm_linux_virtual_machine_scale_set" "test" {
+  name                 = "acctestvmss-%d"
+  resource_group_name  = azurerm_resource_group.test.name
+  location             = azurerm_resource_group.test.location
+  sku                  = "Standard_F2"
+  instances            = 4
+  admin_username       = "adminuser"
+  admin_password       = "P@ssword1234!"
+  zones                = [ "1", "2" ]
+  zone_balance         = true
   disable_password_authentication = false
 
   source_image_reference {
