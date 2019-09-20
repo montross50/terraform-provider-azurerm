@@ -299,14 +299,29 @@ func ExpandVirtualMachineScaleSetNetworkInterface(input []interface{}) *[]comput
 }
 
 func expandVirtualMachineScaleSetIPConfiguration(raw map[string]interface{}) compute.VirtualMachineScaleSetIPConfiguration {
-	/*
-		TODO: expand:
-			application_gateway_backend_address_pool_ids
-			application_security_group_ids
-			load_balancer_backend_address_pool_ids
-			load_balancer_inbound_nat_rules_ids
-			public_ip_address
-	*/
+	var expandIDsToSubResources = func(input []interface{}) *[]compute.SubResource {
+		ids := make([]compute.SubResource, 0)
+
+		for _, v := range input {
+			ids = append(ids, compute.SubResource{
+				ID: utils.String(v.(string)),
+			})
+		}
+
+		return &ids
+	}
+
+	applicationGatewayBackendAddressPoolIdsRaw := raw["application_gateway_backend_address_pool_ids"].(*schema.Set).List()
+	applicationGatewayBackendAddressPoolIds := expandIDsToSubResources(applicationGatewayBackendAddressPoolIdsRaw)
+
+	applicationSecurityGroupIdsRaw := raw["application_security_group_ids"].(*schema.Set).List()
+	applicationSecurityGroupIds := expandIDsToSubResources(applicationSecurityGroupIdsRaw)
+
+	loadBalancerBackendAddressPoolIdsRaw := raw["load_balancer_backend_address_pool_ids"].(*schema.Set).List()
+	loadBalancerBackendAddressPoolIds := expandIDsToSubResources(loadBalancerBackendAddressPoolIdsRaw)
+
+	loadBalancerInboundNatPoolIdsRaw := raw["load_balancer_inbound_nat_rules_ids"].(*schema.Set).List()
+	loadBalancerInboundNatPoolIds := expandIDsToSubResources(loadBalancerInboundNatPoolIdsRaw)
 
 	ipConfiguration := compute.VirtualMachineScaleSetIPConfiguration{
 		Name: utils.String(raw["name"].(string)),
@@ -314,14 +329,12 @@ func expandVirtualMachineScaleSetIPConfiguration(raw map[string]interface{}) com
 			Subnet: &compute.APIEntityReference{
 				ID: utils.String(raw["subnet_id"].(string)),
 			},
-			Primary:                 utils.Bool(raw["primary"].(bool)),
-			PrivateIPAddressVersion: compute.IPVersion(raw["version"].(string)),
-
-			// TODO: expand/set me
-			ApplicationGatewayBackendAddressPools: nil,
-			ApplicationSecurityGroups:             nil,
-			LoadBalancerBackendAddressPools:       nil,
-			LoadBalancerInboundNatPools:           nil,
+			Primary:                               utils.Bool(raw["primary"].(bool)),
+			PrivateIPAddressVersion:               compute.IPVersion(raw["version"].(string)),
+			ApplicationGatewayBackendAddressPools: applicationGatewayBackendAddressPoolIds,
+			ApplicationSecurityGroups:             applicationSecurityGroupIds,
+			LoadBalancerBackendAddressPools:       loadBalancerBackendAddressPoolIds,
+			LoadBalancerInboundNatPools:           loadBalancerInboundNatPoolIds,
 		},
 	}
 
@@ -437,18 +450,38 @@ func flattenVirtualMachineScaleSetIPConfiguration(input compute.VirtualMachineSc
 		publicIPAddresses = append(publicIPAddresses, flattenVirtualMachineScaleSetPublicIPAddress(*input.PublicIPAddressConfiguration))
 	}
 
+	var flattenSubResourcesToIDs = func(input *[]compute.SubResource) []interface{} {
+		ids := make([]interface{}, 0)
+		if input == nil {
+			return ids
+		}
+
+		for _, v := range *input {
+			if v.ID == nil {
+				continue
+			}
+
+			ids = append(ids, *v.ID)
+		}
+
+		return ids
+	}
+
+	applicationGatewayBackendAddressPoolIds := flattenSubResourcesToIDs(input.ApplicationGatewayBackendAddressPools)
+	applicationSecurityGroupIds := flattenSubResourcesToIDs(input.ApplicationSecurityGroups)
+	loadBalancerBackendAddressPoolIds := flattenSubResourcesToIDs(input.LoadBalancerBackendAddressPools)
+	loadBalancerInboundNatRuleIds := flattenSubResourcesToIDs(input.LoadBalancerInboundNatPools)
+
 	return map[string]interface{}{
 		"name":              name,
 		"primary":           primary,
 		"public_ip_address": publicIPAddresses,
 		"subnet_id":         subnetId,
 		"version":           string(input.PrivateIPAddressVersion),
-
-		// TODO: flatten these
-		"application_gateway_backend_address_pool_ids": []interface{}{},
-		"application_security_group_ids":               []interface{}{},
-		"load_balancer_backend_address_pool_ids":       []interface{}{},
-		"load_balancer_inbound_nat_rules_ids":          []interface{}{},
+		"application_gateway_backend_address_pool_ids": applicationGatewayBackendAddressPoolIds,
+		"application_security_group_ids":               applicationSecurityGroupIds,
+		"load_balancer_backend_address_pool_ids":       loadBalancerBackendAddressPoolIds,
+		"load_balancer_inbound_nat_rules_ids":          loadBalancerInboundNatRuleIds,
 	}
 }
 
