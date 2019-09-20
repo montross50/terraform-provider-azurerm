@@ -10,6 +10,7 @@ import (
 
 // TODO: Requires import
 // TODO: secrets
+// TODO: BootDiagnostics
 
 func TestAccAzureRMLinuxVirtualMachineScaleSet_otherComputerNamePrefix(t *testing.T) {
 	resourceName := "azurerm_linux_virtual_machine_scale_set.test"
