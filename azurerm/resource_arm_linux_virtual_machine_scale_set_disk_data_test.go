@@ -99,7 +99,7 @@ func TestAccAzureRMLinuxVirtualMachineScaleSet_disksDataDiskCaching(t *testing.T
 	})
 }
 
-func TestAccAzureRMLinuxVirtualMachineScaleSet_disksDataDiskCustomSize(t *testing.T) {
+func TestAccAzureRMLinuxVirtualMachineScaleSet_disksDataDiskResizing(t *testing.T) {
 	resourceName := "azurerm_linux_virtual_machine_scale_set.test"
 	ri := tf.AccRandTimeInt()
 	location := testLocation()
@@ -110,24 +110,8 @@ func TestAccAzureRMLinuxVirtualMachineScaleSet_disksDataDiskCustomSize(t *testin
 		CheckDestroy: testCheckAzureRMLinuxVirtualMachineScaleSetDestroy,
 		Steps: []resource.TestStep{
 			{
-				// unset
-				Config: testAccAzureRMLinuxVirtualMachineScaleSet_authPassword(ri, location),
-				Check: resource.ComposeTestCheckFunc(
-					testCheckAzureRMLinuxVirtualMachineScaleSetExists(resourceName),
-				),
-			},
-			{
-				ResourceName:      resourceName,
-				ImportState:       true,
-				ImportStateVerify: true,
-				ImportStateVerifyIgnore: []string{
-					// not returned from the API
-					"admin_password",
-				},
-			},
-			{
 				// 30GB
-				Config: testAccAzureRMLinuxVirtualMachineScaleSet_disksDataDiskCustomSize(ri, location, 30),
+				Config: testAccAzureRMLinuxVirtualMachineScaleSet_disksDataDiskResize(ri, location, 30),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMLinuxVirtualMachineScaleSetExists(resourceName),
 				),
@@ -143,7 +127,7 @@ func TestAccAzureRMLinuxVirtualMachineScaleSet_disksDataDiskCustomSize(t *testin
 			},
 			{
 				// 60GB
-				Config: testAccAzureRMLinuxVirtualMachineScaleSet_disksDataDiskCustomSize(ri, location, 60),
+				Config: testAccAzureRMLinuxVirtualMachineScaleSet_disksDataDiskResize(ri, location, 60),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMLinuxVirtualMachineScaleSetExists(resourceName),
 				),
@@ -415,6 +399,7 @@ resource "azurerm_linux_virtual_machine_scale_set" "test" {
   data_disk {
     storage_account_type = "Standard_LRS"
     caching              = "ReadWrite"
+    disk_size_gb         = 10
     lun                  = 10
   }
 
@@ -462,6 +447,7 @@ resource "azurerm_linux_virtual_machine_scale_set" "test" {
   data_disk {
     storage_account_type = "Standard_LRS"
     caching              = %q
+    disk_size_gb         = 10
     lun                  = 10
   }
 
@@ -479,7 +465,7 @@ resource "azurerm_linux_virtual_machine_scale_set" "test" {
 `, template, rInt, caching)
 }
 
-func testAccAzureRMLinuxVirtualMachineScaleSet_disksDataDiskCustomSize(rInt int, location string, diskSizeGb int) string {
+func testAccAzureRMLinuxVirtualMachineScaleSet_disksDataDiskResize(rInt int, location string, diskSizeGb int) string {
 	template := testAccAzureRMLinuxVirtualMachineScaleSet_template(rInt, location)
 	return fmt.Sprintf(`
 %s
@@ -557,12 +543,14 @@ resource "azurerm_linux_virtual_machine_scale_set" "test" {
   data_disk {
     storage_account_type = "Standard_LRS"
     caching              = "ReadWrite"
+    disk_size_gb         = 10
     lun                  = 10
   }
 
   data_disk {
     storage_account_type = "Standard_LRS"
     caching              = "ReadWrite"
+    disk_size_gb         = 10
     lun                  = 20
   }
 
@@ -610,6 +598,7 @@ resource "azurerm_linux_virtual_machine_scale_set" "test" {
   data_disk {
     storage_account_type = %q
     caching              = "None"
+    disk_size_gb         = 10
     lun                  = 10
   }
 
@@ -657,6 +646,7 @@ resource "azurerm_linux_virtual_machine_scale_set" "test" {
   data_disk {
     storage_account_type = "UltraSSD_LRS"
     caching              = "None"
+    disk_size_gb         = 10
     lun                  = 10
   }
 

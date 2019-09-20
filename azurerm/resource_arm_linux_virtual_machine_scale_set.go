@@ -223,6 +223,9 @@ func resourceArmLinuxVirtualMachineScaleSetCreate(d *schema.ResourceData, meta i
 	additionalCapabilitiesRaw := d.Get("additional_capabilities").([]interface{})
 	additionalCapabilities := computeSvc.ExpandVirtualMachineScaleSetAdditionalCapabilities(additionalCapabilitiesRaw)
 
+	dataDisksRaw := d.Get("data_disk").([]interface{})
+	dataDisks := computeSvc.ExpandVirtualMachineScaleSetDataDisk(dataDisksRaw)
+
 	networkInterfacesRaw := d.Get("network_interface").([]interface{})
 	networkInterfaces := computeSvc.ExpandVirtualMachineScaleSetNetworkInterface(networkInterfacesRaw)
 
@@ -283,9 +286,6 @@ func resourceArmLinuxVirtualMachineScaleSetCreate(d *schema.ResourceData, meta i
 			ID: utils.String(rollingUpgradePolicy.HealthProbeID),
 		}
 	}
-
-	dataDisksRaw := d.Get("data_disk").([]interface{})
-	dataDisks := computeSvc.ExpandVirtualMachineScaleSetDataDisk(dataDisksRaw)
 
 	virtualMachineProfile := compute.VirtualMachineScaleSetVMProfile{
 		Priority: priority,

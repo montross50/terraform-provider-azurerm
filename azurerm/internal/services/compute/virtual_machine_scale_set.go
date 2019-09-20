@@ -511,6 +511,11 @@ func VirtualMachineScaleSetDataDiskSchema() *schema.Schema {
 						string(compute.CachingTypesReadWrite),
 					}, false),
 				},
+				"disk_size_gb": {
+					Type:         schema.TypeInt,
+					Required:     true,
+					ValidateFunc: validation.IntBetween(0, 1023),
+				},
 				"lun": {
 					Type:         schema.TypeInt,
 					Required:     true,
@@ -527,11 +532,6 @@ func VirtualMachineScaleSetDataDiskSchema() *schema.Schema {
 					}, false),
 				},
 
-				"disk_size_gb": {
-					Type:         schema.TypeInt,
-					Optional:     true,
-					ValidateFunc: validation.IntBetween(0, 1023),
-				},
 				"write_accelerator_enabled": {
 					Type:     schema.TypeBool,
 					Optional: true,
@@ -549,8 +549,9 @@ func ExpandVirtualMachineScaleSetDataDisk(input []interface{}) *[]compute.Virtua
 		raw := v.(map[string]interface{})
 
 		disk := compute.VirtualMachineScaleSetDataDisk{
-			Caching: compute.CachingTypes(raw["caching"].(string)),
-			Lun:     utils.Int32(int32(raw["lun"].(int))),
+			Caching:    compute.CachingTypes(raw["caching"].(string)),
+			DiskSizeGB: utils.Int32(int32(raw["disk_size_gb"].(int))),
+			Lun:        utils.Int32(int32(raw["lun"].(int))),
 			ManagedDisk: &compute.VirtualMachineScaleSetManagedDiskParameters{
 				StorageAccountType: compute.StorageAccountTypes(raw["storage_account_type"].(string)),
 			},
@@ -558,10 +559,6 @@ func ExpandVirtualMachineScaleSetDataDisk(input []interface{}) *[]compute.Virtua
 
 			// AFAIK this is required to be Empty
 			CreateOption: compute.DiskCreateOptionTypesEmpty,
-		}
-
-		if diskSizeGb := raw["disk_size_gb"].(int); diskSizeGb > 0 {
-			disk.DiskSizeGB = utils.Int32(int32(diskSizeGb))
 		}
 
 		disks = append(disks, disk)
