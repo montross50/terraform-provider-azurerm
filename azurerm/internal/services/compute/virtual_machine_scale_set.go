@@ -571,6 +571,9 @@ func VirtualMachineScaleSetOSDiskSchema() *schema.Schema {
 				"storage_account_type": {
 					Type:     schema.TypeString,
 					Required: true,
+					// whilst this appears in the Update block the API returns this when changing:
+					// Changing property 'osDisk.managedDisk.storageAccountType' is not allowed
+					ForceNew: true,
 					ValidateFunc: validation.StringInSlice([]string{
 						// note: OS Disks don't support Ultra SSDs
 						string(compute.StorageAccountTypesPremiumLRS),

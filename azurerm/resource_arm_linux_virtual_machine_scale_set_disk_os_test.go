@@ -155,7 +155,7 @@ func TestAccAzureRMLinuxVirtualMachineScaleSet_disksOSDiskEphemeral(t *testing.T
 	})
 }
 
-func TestAccAzureRMLinuxVirtualMachineScaleSet_disksOSDiskStorageAccountType(t *testing.T) {
+func TestAccAzureRMLinuxVirtualMachineScaleSet_disksOSDiskStorageAccountTypeStandardLRS(t *testing.T) {
 	resourceName := "azurerm_linux_virtual_machine_scale_set.test"
 	ri := tf.AccRandTimeInt()
 	location := testLocation()
@@ -179,8 +179,23 @@ func TestAccAzureRMLinuxVirtualMachineScaleSet_disksOSDiskStorageAccountType(t *
 					// not returned from the API
 					"admin_password",
 				},
-			}, {
-				Config: testAccAzureRMLinuxVirtualMachineScaleSet_disksOSDiskStorageAccountType(ri, location, "Premium_LRS"),
+			},
+		},
+	})
+}
+
+func TestAccAzureRMLinuxVirtualMachineScaleSet_disksOSDiskStorageAccountTypeStandardSSD(t *testing.T) {
+	resourceName := "azurerm_linux_virtual_machine_scale_set.test"
+	ri := tf.AccRandTimeInt()
+	location := testLocation()
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMLinuxVirtualMachineScaleSetDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAzureRMLinuxVirtualMachineScaleSet_disksOSDiskStorageAccountType(ri, location, "StandardSSD_LRS"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMLinuxVirtualMachineScaleSetExists(resourceName),
 				),
@@ -193,8 +208,23 @@ func TestAccAzureRMLinuxVirtualMachineScaleSet_disksOSDiskStorageAccountType(t *
 					// not returned from the API
 					"admin_password",
 				},
-			}, {
-				Config: testAccAzureRMLinuxVirtualMachineScaleSet_disksOSDiskStorageAccountType(ri, location, "StandardSSD_LRS"),
+			},
+		},
+	})
+}
+
+func TestAccAzureRMLinuxVirtualMachineScaleSet_disksOSDiskStorageAccountTypePremiumLRS(t *testing.T) {
+	resourceName := "azurerm_linux_virtual_machine_scale_set.test"
+	ri := tf.AccRandTimeInt()
+	location := testLocation()
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMLinuxVirtualMachineScaleSetDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAzureRMLinuxVirtualMachineScaleSet_disksOSDiskStorageAccountType(ri, location, "Premium_LRS"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMLinuxVirtualMachineScaleSetExists(resourceName),
 				),
