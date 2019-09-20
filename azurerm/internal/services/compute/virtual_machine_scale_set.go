@@ -359,12 +359,19 @@ func expandVirtualMachineScaleSetPublicIPAddress(raw map[string]interface{}) *co
 	publicIPAddressConfig := compute.VirtualMachineScaleSetPublicIPAddressConfiguration{
 		Name: utils.String(raw["name"].(string)),
 		VirtualMachineScaleSetPublicIPAddressConfigurationProperties: &compute.VirtualMachineScaleSetPublicIPAddressConfigurationProperties{
-			DNSSettings: &compute.VirtualMachineScaleSetPublicIPAddressConfigurationDNSSettings{
-				DomainNameLabel: utils.String(raw["domain_name_label"].(string)),
-			},
-			IdleTimeoutInMinutes: utils.Int32(int32(raw["idle_timeout_in_minutes"].(int))),
-			IPTags:               &ipTags,
+			IPTags: &ipTags,
 		},
+	}
+
+	if domainNameLabel := raw["domain_name_label"].(string); domainNameLabel != "" {
+		dns := &compute.VirtualMachineScaleSetPublicIPAddressConfigurationDNSSettings{
+			DomainNameLabel: utils.String(domainNameLabel),
+		}
+		publicIPAddressConfig.VirtualMachineScaleSetPublicIPAddressConfigurationProperties.DNSSettings = dns
+	}
+
+	if idleTimeout := raw["idle_timeout_in_minutes"].(int); idleTimeout > 0 {
+		publicIPAddressConfig.VirtualMachineScaleSetPublicIPAddressConfigurationProperties.IdleTimeoutInMinutes = utils.Int32(int32(raw["idle_timeout_in_minutes"].(int)))
 	}
 
 	if publicIPPrefixID := raw["public_ip_prefix_id"].(string); publicIPPrefixID != "" {
@@ -471,12 +478,18 @@ func expandVirtualMachineScaleSetPublicIPAddressUpdate(raw map[string]interface{
 
 	publicIPAddressConfig := compute.VirtualMachineScaleSetUpdatePublicIPAddressConfiguration{
 		Name: utils.String(raw["name"].(string)),
-		VirtualMachineScaleSetUpdatePublicIPAddressConfigurationProperties: &compute.VirtualMachineScaleSetUpdatePublicIPAddressConfigurationProperties{
-			DNSSettings: &compute.VirtualMachineScaleSetPublicIPAddressConfigurationDNSSettings{
-				DomainNameLabel: utils.String(raw["domain_name_label"].(string)),
-			},
-			IdleTimeoutInMinutes: utils.Int32(int32(raw["idle_timeout_in_minutes"].(int))),
-		},
+		VirtualMachineScaleSetUpdatePublicIPAddressConfigurationProperties: &compute.VirtualMachineScaleSetUpdatePublicIPAddressConfigurationProperties{},
+	}
+
+	if domainNameLabel := raw["domain_name_label"].(string); domainNameLabel != "" {
+		dns := &compute.VirtualMachineScaleSetPublicIPAddressConfigurationDNSSettings{
+			DomainNameLabel: utils.String(domainNameLabel),
+		}
+		publicIPAddressConfig.VirtualMachineScaleSetUpdatePublicIPAddressConfigurationProperties.DNSSettings = dns
+	}
+
+	if idleTimeout := raw["idle_timeout_in_minutes"].(int); idleTimeout > 0 {
+		publicIPAddressConfig.VirtualMachineScaleSetUpdatePublicIPAddressConfigurationProperties.IdleTimeoutInMinutes = utils.Int32(int32(raw["idle_timeout_in_minutes"].(int)))
 	}
 
 	return &publicIPAddressConfig
