@@ -8,13 +8,6 @@ import (
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/tf"
 )
 
-/*
-Data Disks - none -> one -> two, changing caching/sku/size
-Write Accelerator Enabled
-ultra_ssd_enabled
-Ephermeral OS Disk / diff_disk_settings
-*/
-
 func TestAccAzureRMLinuxVirtualMachineScaleSet_disksOSDiskCaching(t *testing.T) {
 	resourceName := "azurerm_linux_virtual_machine_scale_set.test"
 	ri := tf.AccRandTimeInt()
