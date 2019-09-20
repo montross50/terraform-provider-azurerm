@@ -8,9 +8,6 @@ import (
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/tf"
 )
 
-// TODO: MSI/User auth
-// TODO: changing the OS disk cache, custom sizes, LB's, App Gateway's
-
 func TestAccAzureRMLinuxVirtualMachineScaleSet_authPassword(t *testing.T) {
 	resourceName := "azurerm_linux_virtual_machine_scale_set.test"
 	ri := tf.AccRandTimeInt()

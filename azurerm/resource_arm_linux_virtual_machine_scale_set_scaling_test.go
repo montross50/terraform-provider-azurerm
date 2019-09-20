@@ -9,7 +9,6 @@ import (
 )
 
 // TODO: 0 instances, 1 instance, 2 -> 5 instances? updating the count with the ignore_changes on the sku
-// Zone_balance - Whether to force strictly even Virtual Machine distribution cross x-zones in case there is zone outage.
 // overprovision
 // autoscaling integration?
 
