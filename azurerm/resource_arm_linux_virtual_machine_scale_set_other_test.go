@@ -8,6 +8,7 @@ import (
 	"github.com/terraform-providers/terraform-provider-azurerm/azurerm/helpers/tf"
 )
 
+// TODO: Requires import
 // TODO: secrets
 
 func TestAccAzureRMLinuxVirtualMachineScaleSet_otherComputerNamePrefix(t *testing.T) {
@@ -171,7 +172,8 @@ func TestAccAzureRMLinuxVirtualMachineScaleSet_otherPriorityLowMaxBidPrice(t *te
 		CheckDestroy: testCheckAzureRMLinuxVirtualMachineScaleSetDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAzureRMLinuxVirtualMachineScaleSet_otherPriorityLowMaxBidPrice(ri, location, "0.01538"),
+				// expensive, but guarantees this test will pass
+				Config: testAccAzureRMLinuxVirtualMachineScaleSet_otherPriorityLowMaxBidPrice(ri, location, "0.5000"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMLinuxVirtualMachineScaleSetExists(resourceName),
 				),
