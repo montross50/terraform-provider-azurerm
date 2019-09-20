@@ -672,9 +672,12 @@ func resourceArmLinuxVirtualMachineScaleSetRead(d *schema.ResourceData, meta int
 
 	var healthProbeId *string
 	if profile := props.VirtualMachineProfile; profile != nil {
-		if billing := profile.BillingProfile; billing != nil {
-			d.Set("max_bid_price", billing.MaxPrice)
+		// defaulted since BillingProfile isn't returned if it's unset
+		maxBidPrice := float64(-1.0)
+		if profile.BillingProfile != nil && profile.BillingProfile.MaxPrice != nil {
+			maxBidPrice = *profile.BillingProfile.MaxPrice
 		}
+		d.Set("max_bid_price", maxBidPrice)
 
 		d.Set("eviction_policy", string(profile.EvictionPolicy))
 		d.Set("priority", string(profile.Priority))
