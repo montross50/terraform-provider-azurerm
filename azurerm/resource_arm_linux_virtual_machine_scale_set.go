@@ -156,7 +156,7 @@ func resourceArmLinuxVirtualMachineScaleSet() *schema.Resource {
 			"single_placement_group": {
 				Type:     schema.TypeBool,
 				Optional: true,
-				Default:  false,
+				Default:  true,
 			},
 
 			"source_image_id": {
@@ -414,6 +414,11 @@ func resourceArmLinuxVirtualMachineScaleSetUpdate(d *schema.ResourceData, meta i
 		VirtualMachineScaleSetUpdateProperties: &compute.VirtualMachineScaleSetUpdateProperties{
 			VirtualMachineProfile: &compute.VirtualMachineScaleSetUpdateVMProfile{},
 		},
+	}
+
+	if d.HasChange("single_placement_group") {
+		// TODO: do we need to call `ConvertToSinglePlacementGroup` here too?
+		update.SinglePlacementGroup = utils.Bool(d.Get("single_placement_group").(bool))
 	}
 
 	// TODO: secrets
