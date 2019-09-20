@@ -525,13 +525,14 @@ func VirtualMachineScaleSetOSDiskSchema() *schema.Schema {
 				"diff_disk_settings": {
 					Type:     schema.TypeList,
 					Optional: true,
+					ForceNew: true,
 					MaxItems: 1,
-					// TODO: should this be ForceNew?
 					Elem: &schema.Resource{
 						Schema: map[string]*schema.Schema{
 							"option": {
 								Type:     schema.TypeString,
 								Required: true,
+								ForceNew: true,
 								ValidateFunc: validation.StringInSlice([]string{
 									string(compute.Local),
 								}, false),
@@ -544,14 +545,12 @@ func VirtualMachineScaleSetOSDiskSchema() *schema.Schema {
 					Type:         schema.TypeInt,
 					Optional:     true,
 					ValidateFunc: validation.IntBetween(0, 1023),
-					// TODO: should this be ForceNew?
 				},
 
 				"write_accelerator_enabled": {
 					Type:     schema.TypeBool,
 					Optional: true,
 					Default:  false,
-					// TODO: should this be ForceNew?
 				},
 			},
 		},
@@ -581,6 +580,23 @@ func ExpandVirtualMachineScaleSetOSDisk(input []interface{}, osType compute.Oper
 		disk.DiffDiskSettings = &compute.DiffDiskSettings{
 			Option: compute.DiffDiskOptions(diffDiskRaw["option"].(string)),
 		}
+	}
+
+	return &disk
+}
+
+func ExpandVirtualMachineScaleSetOSDiskUpdate(input []interface{}) *compute.VirtualMachineScaleSetUpdateOSDisk {
+	raw := input[0].(map[string]interface{})
+	disk := compute.VirtualMachineScaleSetUpdateOSDisk{
+		Caching: compute.CachingTypes(raw["caching"].(string)),
+		ManagedDisk: &compute.VirtualMachineScaleSetManagedDiskParameters{
+			StorageAccountType: compute.StorageAccountTypes(raw["storage_account_type"].(string)),
+		},
+		WriteAcceleratorEnabled: utils.Bool(raw["write_accelerator_enabled"].(bool)),
+	}
+
+	if osDiskSize := raw["disk_size_gb"].(int); osDiskSize > 0 {
+		disk.DiskSizeGB = utils.Int32(int32(osDiskSize))
 	}
 
 	return &disk
@@ -656,18 +672,24 @@ func VirtualMachineScaleSetSourceImageReferenceSchema() *schema.Schema {
 	}
 }
 
-func ExpandVirtualMachineScaleSetSourceImageReference(input []interface{}) *compute.ImageReference {
-	if len(input) == 0 {
-		return nil
+func ExpandVirtualMachineScaleSetSourceImageReference(referenceInput []interface{}, imageId string) (*compute.ImageReference, error) {
+	if imageId == "" {
+		return &compute.ImageReference{
+			ID: utils.String(imageId),
+		}, nil
 	}
 
-	raw := input[0].(map[string]interface{})
+	if len(referenceInput) == 0 {
+		return nil, fmt.Errorf("Either a `source_image_id` or a `source_image_reference` block must be specified!")
+	}
+
+	raw := referenceInput[0].(map[string]interface{})
 	return &compute.ImageReference{
 		Publisher: utils.String(raw["publisher"].(string)),
 		Offer:     utils.String(raw["offer"].(string)),
 		Sku:       utils.String(raw["sku"].(string)),
 		Version:   utils.String(raw["version"].(string)),
-	}
+	}, nil
 }
 
 func FlattenVirtualMachineScaleSetSourceImageReference(input *compute.ImageReference) []interface{} {

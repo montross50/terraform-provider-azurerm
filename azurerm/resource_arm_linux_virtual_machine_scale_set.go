@@ -225,16 +225,10 @@ func resourceArmLinuxVirtualMachineScaleSetCreate(d *schema.ResourceData, meta i
 	osDisk := computeSvc.ExpandVirtualMachineScaleSetOSDisk(osDiskRaw, compute.Linux)
 
 	sourceImageReferenceRaw := d.Get("source_image_reference").([]interface{})
-	sourceImageReference := computeSvc.ExpandVirtualMachineScaleSetSourceImageReference(sourceImageReferenceRaw)
-	if sourceImageReference == nil {
-		sourceImageId := d.Get("source_image_id").(string)
-		if sourceImageId == "" {
-			return fmt.Errorf("Either a `source_image_id` or a `source_image_reference` block must be specified!")
-		}
-
-		sourceImageReference = &compute.ImageReference{
-			ID: utils.String(sourceImageId),
-		}
+	sourceImageId := d.Get("source_image_id").(string)
+	sourceImageReference, err := computeSvc.ExpandVirtualMachineScaleSetSourceImageReference(sourceImageReferenceRaw, sourceImageId)
+	if err != nil {
+		return err
 	}
 
 	sshKeysRaw := d.Get("admin_ssh_key").(*schema.Set).List()
@@ -442,8 +436,27 @@ func resourceArmLinuxVirtualMachineScaleSetUpdate(d *schema.ResourceData, meta i
 	if d.HasChange("os_disk") || d.HasChange("source_image_id") || d.HasChange("source_image_reference") {
 		updateConfig = true
 
-		// TODO: implement me
-		//update.VirtualMachineProfile.StorageProfile = &compute.StorageProfile{}
+		storageProfile := &compute.VirtualMachineScaleSetUpdateStorageProfile{}
+
+		if d.HasChange("os_disk") {
+			osDiskRaw := d.Get("os_disk").([]interface{})
+			storageProfile.OsDisk = computeSvc.ExpandVirtualMachineScaleSetOSDiskUpdate(osDiskRaw)
+		}
+
+		// TODO: data disks
+
+		if d.HasChange("source_image_id") || d.HasChange("source_image_reference") {
+			sourceImageReferenceRaw := d.Get("source_image_reference").([]interface{})
+			sourceImageId := d.Get("source_image_id").(string)
+			sourceImageReference, err := computeSvc.ExpandVirtualMachineScaleSetSourceImageReference(sourceImageReferenceRaw, sourceImageId)
+			if err != nil {
+				return err
+			}
+
+			storageProfile.ImageReference = sourceImageReference
+		}
+
+		update.VirtualMachineProfile.StorageProfile = storageProfile
 	}
 
 	if d.HasChange("network_interface") {
@@ -458,7 +471,6 @@ func resourceArmLinuxVirtualMachineScaleSetUpdate(d *schema.ResourceData, meta i
 	updateInstances := false
 	if d.HasChange("sku") || d.HasChange("instances") {
 		updateConfig = true
-		updateInstances = d.HasChange("sku") // TODO: should this be conditional upon it being manual too?
 
 		// in-case ignore_changes is being used, since both fields are required
 		// look up the current values and override them as needed
@@ -470,6 +482,8 @@ func resourceArmLinuxVirtualMachineScaleSetUpdate(d *schema.ResourceData, meta i
 		sku := existing.Sku
 
 		if d.HasChange("sku") {
+			updateInstances = true // TODO: should this be conditional upon it being manual too?
+
 			sku.Name = utils.String(d.Get("sku").(string))
 		}
 
