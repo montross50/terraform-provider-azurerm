@@ -148,7 +148,7 @@ func virtualMachineScaleSetIPConfigurationSchema() *schema.Schema {
 				},
 				"subnet_id": {
 					Type:         schema.TypeString,
-					Required:     true,
+					Optional:     true, // TODO: confirm if IPv6 needs this Optional, it may need to be Required
 					ValidateFunc: azure.ValidateResourceID,
 				},
 
@@ -231,6 +231,7 @@ func virtualMachineScaleSetPublicIPAddressSchema() *schema.Schema {
 					ValidateFunc: validation.IntBetween(4, 32),
 				},
 				"ip_tag": {
+					// TODO: does this want to be a Set?
 					Type:     schema.TypeList,
 					Optional: true,
 					Elem: &schema.Resource{

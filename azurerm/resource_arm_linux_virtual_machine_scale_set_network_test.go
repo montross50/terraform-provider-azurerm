@@ -483,6 +483,35 @@ func TestAccAzureRMLinuxVirtualMachineScaleSet_networkMultipleNICsMultipleIPConf
 	})
 }
 
+func TestAccAzureRMLinuxVirtualMachineScaleSet_networkMultipleNICsMultiplePublicIPs(t *testing.T) {
+	resourceName := "azurerm_linux_virtual_machine_scale_set.test"
+	ri := tf.AccRandTimeInt()
+	location := testLocation()
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMLinuxVirtualMachineScaleSetDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAzureRMLinuxVirtualMachineScaleSet_networkMultipleNICsMultiplePublicIPs(ri, location),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMLinuxVirtualMachineScaleSetExists(resourceName),
+				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					// not returned from the API
+					"admin_password",
+				},
+			},
+		},
+	})
+}
+
 func TestAccAzureRMLinuxVirtualMachineScaleSet_networkMultipleNICsWithDifferentDNSServers(t *testing.T) {
 	resourceName := "azurerm_linux_virtual_machine_scale_set.test"
 	ri := tf.AccRandTimeInt()
@@ -693,11 +722,121 @@ func TestAccAzureRMLinuxVirtualMachineScaleSet_networkPrivate(t *testing.T) {
 	})
 }
 
-// public IP per instance https://github.com/terraform-providers/terraform-provider-azurerm/issues/3020
-// multiple blocks with multiple public IP's
-// public IP with a domain name label?
-// public IP with 2x IP Tags
-// public IP per instance from a Public IP Prefix
+func TestAccAzureRMLinuxVirtualMachineScaleSet_networkPublicIP(t *testing.T) {
+	resourceName := "azurerm_linux_virtual_machine_scale_set.test"
+	ri := tf.AccRandTimeInt()
+	location := testLocation()
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMLinuxVirtualMachineScaleSetDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAzureRMLinuxVirtualMachineScaleSet_networkPublicIP(ri, location),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMLinuxVirtualMachineScaleSetExists(resourceName),
+				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					// not returned from the API
+					"admin_password",
+				},
+			},
+		},
+	})
+}
+
+func TestAccAzureRMLinuxVirtualMachineScaleSet_networkPublicIPDomainNameLabel(t *testing.T) {
+	resourceName := "azurerm_linux_virtual_machine_scale_set.test"
+	ri := tf.AccRandTimeInt()
+	location := testLocation()
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMLinuxVirtualMachineScaleSetDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAzureRMLinuxVirtualMachineScaleSet_networkPublicIPDomainNameLabel(ri, location),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMLinuxVirtualMachineScaleSetExists(resourceName),
+				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					// not returned from the API
+					"admin_password",
+				},
+			},
+		},
+	})
+}
+
+func TestAccAzureRMLinuxVirtualMachineScaleSet_networkPublicIPFromPrefix(t *testing.T) {
+	resourceName := "azurerm_linux_virtual_machine_scale_set.test"
+	ri := tf.AccRandTimeInt()
+	location := testLocation()
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMLinuxVirtualMachineScaleSetDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAzureRMLinuxVirtualMachineScaleSet_networkPublicIPFromPrefix(ri, location),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMLinuxVirtualMachineScaleSetExists(resourceName),
+				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					// not returned from the API
+					"admin_password",
+				},
+			},
+		},
+	})
+}
+
+func TestAccAzureRMLinuxVirtualMachineScaleSet_networkPublicIPTags(t *testing.T) {
+	resourceName := "azurerm_linux_virtual_machine_scale_set.test"
+	ri := tf.AccRandTimeInt()
+	location := testLocation()
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMLinuxVirtualMachineScaleSetDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAzureRMLinuxVirtualMachineScaleSet_networkPublicIPTags(ri, location),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMLinuxVirtualMachineScaleSetExists(resourceName),
+				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					// not returned from the API
+					"admin_password",
+				},
+			},
+		},
+	})
+}
 
 func testAccAzureRMLinuxVirtualMachineScaleSet_networkAcceleratedNetworking(rInt int, location string, enabled bool) string {
 	template := testAccAzureRMLinuxVirtualMachineScaleSet_template(rInt, location)
@@ -1405,6 +1544,69 @@ resource "azurerm_linux_virtual_machine_scale_set" "test" {
 `, template, rInt)
 }
 
+func testAccAzureRMLinuxVirtualMachineScaleSet_networkMultipleNICsMultiplePublicIPs(rInt int, location string) string {
+	template := testAccAzureRMLinuxVirtualMachineScaleSet_template(rInt, location)
+	return fmt.Sprintf(`
+%s
+
+resource "azurerm_linux_virtual_machine_scale_set" "test" {
+  name                = "acctestvmss-%d"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+  sku                 = "Standard_F2"
+  instances           = 1
+  admin_username      = "adminuser"
+  admin_password      = "P@ssword1234!"
+  disable_password_authentication = false
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "UbuntuServer"
+    sku       = "16.04-LTS"
+    version   = "latest"
+  }
+
+  os_disk {
+    storage_account_type = "Standard_LRS"
+    caching              = "ReadWrite"
+  }
+
+  network_interface {
+    name    = "primary"
+    primary = true
+
+    ip_configuration {
+      name      = "first"
+      primary   = true
+      subnet_id = azurerm_subnet.test.id
+
+      public_ip_address {
+        name                    = "first"
+        domain_name_label       = "acctest1-%d"
+        idle_timeout_in_minutes = 4
+      }
+    }
+  }
+
+  network_interface {
+    name    = "secondary"
+
+    ip_configuration {
+      name      = "second"
+      primary   = true
+      subnet_id = azurerm_subnet.test.id
+
+      public_ip_address {
+        name                    = "second"
+        domain_name_label       = "acctest2-%d"
+        idle_timeout_in_minutes = 4
+      }
+    }
+  }
+}
+`, template, rInt, rInt)
+}
+
 func testAccAzureRMLinuxVirtualMachineScaleSet_networkNetworkSecurityGroup(rInt int, location string) string {
 	template := testAccAzureRMLinuxVirtualMachineScaleSet_template(rInt, location)
 	return fmt.Sprintf(`
@@ -1590,6 +1792,200 @@ resource "azurerm_linux_virtual_machine_scale_set" "test" {
       name      = "internal"
       primary   = true
       subnet_id = azurerm_subnet.other.id
+    }
+  }
+}
+`, template, rInt)
+}
+
+func testAccAzureRMLinuxVirtualMachineScaleSet_networkPublicIP(rInt int, location string) string {
+	template := testAccAzureRMLinuxVirtualMachineScaleSet_template(rInt, location)
+	return fmt.Sprintf(`
+%s
+
+resource "azurerm_linux_virtual_machine_scale_set" "test" {
+  name                = "acctestvmss-%d"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+  sku                 = "Standard_F2"
+  instances           = 1
+  admin_username      = "adminuser"
+  admin_password      = "P@ssword1234!"
+  disable_password_authentication = false
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "UbuntuServer"
+    sku       = "16.04-LTS"
+    version   = "latest"
+  }
+
+  os_disk {
+    storage_account_type = "Standard_LRS"
+    caching              = "ReadWrite"
+  }
+
+  network_interface {
+    name    = "primary"
+    primary = true
+
+    ip_configuration {
+      name      = "first"
+      primary   = true
+      subnet_id = azurerm_subnet.test.id
+
+      public_ip_address {
+        name                    = "first"
+        idle_timeout_in_minutes = 4
+      }
+    }
+  }
+}
+`, template, rInt, rInt)
+}
+
+func testAccAzureRMLinuxVirtualMachineScaleSet_networkPublicIPDomainNameLabel(rInt int, location string) string {
+	template := testAccAzureRMLinuxVirtualMachineScaleSet_template(rInt, location)
+	return fmt.Sprintf(`
+%s
+
+resource "azurerm_linux_virtual_machine_scale_set" "test" {
+  name                = "acctestvmss-%d"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+  sku                 = "Standard_F2"
+  instances           = 1
+  admin_username      = "adminuser"
+  admin_password      = "P@ssword1234!"
+  disable_password_authentication = false
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "UbuntuServer"
+    sku       = "16.04-LTS"
+    version   = "latest"
+  }
+
+  os_disk {
+    storage_account_type = "Standard_LRS"
+    caching              = "ReadWrite"
+  }
+
+  network_interface {
+    name    = "primary"
+    primary = true
+
+    ip_configuration {
+      name      = "first"
+      primary   = true
+      subnet_id = azurerm_subnet.test.id
+
+      public_ip_address {
+        name                    = "first"
+        domain_name_label       = "acctestdnl-%d"
+        idle_timeout_in_minutes = 4
+      }
+    }
+  }
+}
+`, template, rInt, rInt)
+}
+
+func testAccAzureRMLinuxVirtualMachineScaleSet_networkPublicIPFromPrefix(rInt int, location string) string {
+	template := testAccAzureRMLinuxVirtualMachineScaleSet_template(rInt, location)
+	return fmt.Sprintf(`
+%s
+
+resource "azurerm_public_ip_prefix" "test" {
+  name                = "acctestpublicipprefix-%d"
+  location            = azurerm_resource_group.test.location
+  resource_group_name = "azurerm_resource_group.test.name
+}
+
+resource "azurerm_linux_virtual_machine_scale_set" "test" {
+  name                = "acctestvmss-%d"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+  sku                 = "Standard_F2"
+  instances           = 1
+  admin_username      = "adminuser"
+  admin_password      = "P@ssword1234!"
+  disable_password_authentication = false
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "UbuntuServer"
+    sku       = "16.04-LTS"
+    version   = "latest"
+  }
+
+  os_disk {
+    storage_account_type = "Standard_LRS"
+    caching              = "ReadWrite"
+  }
+
+  network_interface {
+    name    = "primary"
+    primary = true
+
+    ip_configuration {
+      name      = "first"
+      primary   = true
+      subnet_id = azurerm_subnet.test.id
+
+      public_ip_address {
+        name                 = "first"
+        public_ip_prefix_id  = azurerm_public_ip_prefix.test.id
+      }
+    }
+  }
+}
+`, template, rInt, rInt)
+}
+
+func testAccAzureRMLinuxVirtualMachineScaleSet_networkPublicIPTags(rInt int, location string) string {
+	template := testAccAzureRMLinuxVirtualMachineScaleSet_template(rInt, location)
+	return fmt.Sprintf(`
+%s
+
+resource "azurerm_linux_virtual_machine_scale_set" "test" {
+  name                = "acctestvmss-%d"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+  sku                 = "Standard_F2"
+  instances           = 1
+  admin_username      = "adminuser"
+  admin_password      = "P@ssword1234!"
+  disable_password_authentication = false
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "UbuntuServer"
+    sku       = "16.04-LTS"
+    version   = "latest"
+  }
+
+  os_disk {
+    storage_account_type = "Standard_LRS"
+    caching              = "ReadWrite"
+  }
+
+  network_interface {
+    name    = "primary"
+    primary = true
+
+    ip_configuration {
+      name      = "first"
+      primary   = true
+      subnet_id = azurerm_subnet.test.id
+
+      public_ip_address {
+        name                 = "first"
+
+        ip_tag {
+          FirstPartyUsage = "/Sql""
+        }
+      }
     }
   }
 }
