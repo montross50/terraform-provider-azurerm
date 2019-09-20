@@ -643,11 +643,15 @@ func resourceArmLinuxVirtualMachineScaleSetRead(d *schema.ResourceData, meta int
 		d.Set("priority", string(profile.Priority))
 
 		if storageProfile := profile.StorageProfile; storageProfile != nil {
-			if d.Set("os_disk", computeSvc.FlattenVirtualMachineScaleSetOSDisk(storageProfile.OsDisk)); err != nil {
+			if err := d.Set("os_disk", computeSvc.FlattenVirtualMachineScaleSetOSDisk(storageProfile.OsDisk)); err != nil {
 				return fmt.Errorf("Error setting `os_disk`: %+v", err)
 			}
 
-			if d.Set("source_image_reference", computeSvc.FlattenVirtualMachineScaleSetSourceImageReference(storageProfile.ImageReference)); err != nil {
+			if err := d.Set("data_disk", computeSvc.FlattenVirtualMachineScaleSetDataDisk(storageProfile.DataDisks)); err != nil {
+				return fmt.Errorf("Error setting `data_disk`: %+v", err)
+			}
+
+			if err := d.Set("source_image_reference", computeSvc.FlattenVirtualMachineScaleSetSourceImageReference(storageProfile.ImageReference)); err != nil {
 				return fmt.Errorf("Error setting `source_image_reference`: %+v", err)
 			}
 
@@ -679,7 +683,7 @@ func resourceArmLinuxVirtualMachineScaleSetRead(d *schema.ResourceData, meta int
 
 		if nwProfile := profile.NetworkProfile; nwProfile != nil {
 			flattenedNics := computeSvc.FlattenVirtualMachineScaleSetNetworkInterface(nwProfile.NetworkInterfaceConfigurations)
-			if d.Set("network_interface", flattenedNics); err != nil {
+			if err := d.Set("network_interface", flattenedNics); err != nil {
 				return fmt.Errorf("Error setting `network_interface`: %+v", err)
 			}
 

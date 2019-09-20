@@ -543,13 +543,71 @@ func VirtualMachineScaleSetDataDiskSchema() *schema.Schema {
 }
 
 func ExpandVirtualMachineScaleSetDataDisk(input []interface{}) *[]compute.VirtualMachineScaleSetDataDisk {
-	// TODO: implement me
-	return nil
+	disks := make([]compute.VirtualMachineScaleSetDataDisk, 0)
+
+	for _, v := range input {
+		raw := v.(map[string]interface{})
+
+		disk := compute.VirtualMachineScaleSetDataDisk{
+			Caching: compute.CachingTypes(raw["caching"].(string)),
+			Lun:     utils.Int32(int32(raw["lun"].(int))),
+			ManagedDisk: &compute.VirtualMachineScaleSetManagedDiskParameters{
+				StorageAccountType: compute.StorageAccountTypes(raw["storage_account_type"].(string)),
+			},
+			WriteAcceleratorEnabled: utils.Bool(raw["write_accelerator_enabled"].(bool)),
+
+			// AFAIK this is required to be Empty
+			CreateOption: compute.DiskCreateOptionTypesEmpty,
+		}
+
+		if diskSizeGb := raw["disk_size_gb"].(int); diskSizeGb > 0 {
+			disk.DiskSizeGB = utils.Int32(int32(diskSizeGb))
+		}
+
+		disks = append(disks, disk)
+	}
+
+	return &disks
 }
 
 func FlattenVirtualMachineScaleSetDataDisk(input *[]compute.VirtualMachineScaleSetDataDisk) []interface{} {
-	// TODO: implement me
-	return []interface{}{}
+	if input == nil {
+		return []interface{}{}
+	}
+
+	output := make([]interface{}, 0)
+
+	for _, v := range *input {
+		diskSizeGb := 0
+		if v.DiskSizeGB != nil && *v.DiskSizeGB != 0 {
+			diskSizeGb = int(*v.DiskSizeGB)
+		}
+
+		lun := 0
+		if v.Lun != nil {
+			lun = int(*v.Lun)
+		}
+
+		var storageAccountType string
+		if v.ManagedDisk != nil {
+			storageAccountType = string(v.ManagedDisk.StorageAccountType)
+		}
+
+		writeAcceleratorEnabled := false
+		if v.WriteAcceleratorEnabled != nil {
+			writeAcceleratorEnabled = *v.WriteAcceleratorEnabled
+		}
+
+		output = append(output, map[string]interface{}{
+			"caching":                   string(v.Caching),
+			"lun":                       lun,
+			"disk_size_gb":              diskSizeGb,
+			"storage_account_type":      storageAccountType,
+			"write_accelerator_enabled": writeAcceleratorEnabled,
+		})
+	}
+
+	return output
 }
 
 func VirtualMachineScaleSetOSDiskSchema() *schema.Schema {
