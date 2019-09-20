@@ -78,12 +78,6 @@ func resourceArmLinuxVirtualMachineScaleSet() *schema.Resource {
 
 			"automatic_os_upgrade_policy": computeSvc.VirtualMachineScaleSetAutomatedOSUpgradePolicySchema(),
 
-			"max_bid_price": {
-				Type:     schema.TypeFloat,
-				Optional: true,
-				Default:  -1,
-			},
-
 			"computer_name_prefix": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -121,6 +115,12 @@ func resourceArmLinuxVirtualMachineScaleSet() *schema.Resource {
 					string(compute.Deallocate),
 					string(compute.Delete),
 				}, false),
+			},
+
+			"max_bid_price": {
+				Type:     schema.TypeFloat,
+				Optional: true,
+				Default:  -1,
 			},
 
 			"overprovision": {
