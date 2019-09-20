@@ -906,6 +906,7 @@ func VirtualMachineScaleSetRollingUpgradePolicySchema() *schema.Schema {
 				"health_probe_id": {
 					Type:         schema.TypeInt,
 					Required:     true,
+					ForceNew:     true,
 					ValidateFunc: azure.ValidateResourceID,
 				},
 				"max_batch_instance_percent": {
