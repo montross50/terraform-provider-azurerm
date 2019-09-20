@@ -42,6 +42,9 @@ func VirtualMachineScaleSetAdditionalCapabilitiesSchema() *schema.Schema {
 		MaxItems: 1,
 		Elem: &schema.Resource{
 			Schema: map[string]*schema.Schema{
+				// NOTE: requires registration to use:
+				// $ az feature show --namespace Microsoft.Compute --name UltraSSDWithVMSS
+				// $ az provider register -n Microsoft.Compute
 				"ultra_ssd_enabled": {
 					Type:     schema.TypeBool,
 					Optional: true,
