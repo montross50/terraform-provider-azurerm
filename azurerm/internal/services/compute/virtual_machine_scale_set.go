@@ -225,7 +225,7 @@ func virtualMachineScaleSetPublicIPAddressSchema() *schema.Schema {
 					Optional:     true,
 					ValidateFunc: validate.NoEmptyStrings,
 				},
-				"idle_time_in_minutes": {
+				"idle_timeout_in_minutes": {
 					Type:         schema.TypeInt,
 					Optional:     true,
 					ValidateFunc: validation.IntBetween(4, 32),
