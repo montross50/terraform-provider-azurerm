@@ -367,6 +367,35 @@ func TestAccAzureRMLinuxVirtualMachineScaleSet_networkIPv6(t *testing.T) {
 	})
 }
 
+func TestAccAzureRMLinuxVirtualMachineScaleSet_networkLoadBalancer(t *testing.T) {
+	resourceName := "azurerm_linux_virtual_machine_scale_set.test"
+	ri := tf.AccRandTimeInt()
+	location := testLocation()
+
+	resource.ParallelTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testCheckAzureRMLinuxVirtualMachineScaleSetDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAzureRMLinuxVirtualMachineScaleSet_networkLoadBalancer(ri, location),
+				Check: resource.ComposeTestCheckFunc(
+					testCheckAzureRMLinuxVirtualMachineScaleSetExists(resourceName),
+				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
+				ImportStateVerifyIgnore: []string{
+					// not returned from the API
+					"admin_password",
+				},
+			},
+		},
+	})
+}
+
 func TestAccAzureRMLinuxVirtualMachineScaleSet_networkPrivate(t *testing.T) {
 	resourceName := "azurerm_linux_virtual_machine_scale_set.test"
 	ri := tf.AccRandTimeInt()
@@ -572,7 +601,6 @@ func TestAccAzureRMLinuxVirtualMachineScaleSet_networkRenamed(t *testing.T) {
 // public IP with a domain name label?
 // public IP with 2x IP Tags
 // public IP per instance from a Public IP Prefix
-// Load Balancer
 // NIC specific DNS Servers
 
 func testAccAzureRMLinuxVirtualMachineScaleSet_networkAcceleratedNetworking(rInt int, location string, enabled bool) string {
@@ -930,6 +958,86 @@ resource "azurerm_linux_virtual_machine_scale_set" "test" {
   }
 }
 `, template, rInt)
+}
+
+func testAccAzureRMLinuxVirtualMachineScaleSet_networkLoadBalancer(rInt int, location string) string {
+	template := testAccAzureRMLinuxVirtualMachineScaleSet_template(rInt, location)
+	return fmt.Sprintf(`
+%s
+
+
+resource "azurerm_public_ip" "test" {
+  name                = "test-ip-%d"
+  location            = "${azurerm_resource_group.test.location}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  allocation_method   = "Static"
+}
+
+resource "azurerm_lb" "test" {
+  name                = "acctestlb-%d"
+  location            = "azurerm_resource_group.test.location
+  resource_group_name = "azurerm_resource_group.test.name
+
+  frontend_ip_configuration {
+    name                 = "internal"
+    public_ip_address_id = azurerm_public_ip.test.id
+  }
+}
+
+resource "azurerm_lb_backend_address_pool" "test" {
+  name                = "test"
+  location            = "${azurerm_resource_group.test.location}"
+  resource_group_name = "${azurerm_resource_group.test.name}"
+  loadbalancer_id     = "${azurerm_lb.test.id}"
+}
+
+resource "azurerm_lb_nat_rule" "test" {
+  name                           = "test"
+  location                       = "${azurerm_resource_group.test.location}"
+  resource_group_name            = "${azurerm_resource_group.test.name}"
+  loadbalancer_id                = "${azurerm_lb.test.id}"
+  protocol                       = "Tcp"
+  frontend_port                  = 3389
+  backend_port                   = 3389
+  frontend_ip_configuration_name = "internal"
+}
+
+resource "azurerm_linux_virtual_machine_scale_set" "test" {
+  name                = "acctestvmss-%d"
+  resource_group_name = azurerm_resource_group.test.name
+  location            = azurerm_resource_group.test.location
+  sku                 = "Standard_F2"
+  instances           = 1
+  admin_username      = "adminuser"
+  admin_password      = "P@ssword1234!"
+  disable_password_authentication = false
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "UbuntuServer"
+    sku       = "16.04-LTS"
+    version   = "latest"
+  }
+
+  os_disk {
+    storage_account_type = "Standard_LRS"
+    caching              = "ReadWrite"
+  }
+
+  network_interface {
+    name    = "example"
+    primary = true
+
+    ip_configuration {
+      name      = "internal"
+      primary   = true
+      subnet_id = azurerm_subnet.test.id
+      load_balancer_backend_address_pool_ids = [ azurerm_lb_backend_address_pool.test.id ]
+      load_balancer_inbound_nat_rules_ids = [ azurerm_lb_nat_rule.test.id ]
+    }
+  }
+}
+`, template, rInt, rInt, rInt)
 }
 
 func testAccAzureRMLinuxVirtualMachineScaleSet_networkPrivate(rInt int, location string) string {
