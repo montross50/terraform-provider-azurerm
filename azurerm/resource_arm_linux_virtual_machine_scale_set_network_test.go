@@ -680,7 +680,7 @@ resource "azurerm_linux_virtual_machine_scale_set" "test" {
       name      = "internal"
       primary   = true
       subnet_id = azurerm_subnet.test.id
-      application_security_group_ids = [ azurerm_application_gateway.test.id ]
+      application_gateway_backend_address_pool_ids = [ azurerm_application_gateway.test.backend_address_pool.0.id ]
     }
   }
 }
