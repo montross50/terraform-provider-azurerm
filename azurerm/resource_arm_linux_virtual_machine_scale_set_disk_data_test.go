@@ -297,7 +297,7 @@ func TestAccAzureRMLinuxVirtualMachineScaleSet_disksDataDiskStorageAccountTypeSt
 	})
 }
 
-func TestAccAzureRMLinuxVirtualMachineScaleSet_disksDataDiskStorageAccountTypeStandardSSD(t *testing.T) {
+func TestAccAzureRMLinuxVirtualMachineScaleSet_disksDataDiskStorageAccountTypeStandardSSDLRS(t *testing.T) {
 	resourceName := "azurerm_linux_virtual_machine_scale_set.test"
 	ri := tf.AccRandTimeInt()
 	location := testLocation()
@@ -308,7 +308,7 @@ func TestAccAzureRMLinuxVirtualMachineScaleSet_disksDataDiskStorageAccountTypeSt
 		CheckDestroy: testCheckAzureRMLinuxVirtualMachineScaleSetDestroy,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccAzureRMLinuxVirtualMachineScaleSet_disksDataDiskStorageAccountType(ri, location, "Standard_SSD"),
+				Config: testAccAzureRMLinuxVirtualMachineScaleSet_disksDataDiskStorageAccountType(ri, location, "StandardSSD_LRS"),
 				Check: resource.ComposeTestCheckFunc(
 					testCheckAzureRMLinuxVirtualMachineScaleSetExists(resourceName),
 				),

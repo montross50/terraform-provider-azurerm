@@ -184,7 +184,7 @@ func TestAccAzureRMLinuxVirtualMachineScaleSet_disksOSDiskStorageAccountTypeStan
 	})
 }
 
-func TestAccAzureRMLinuxVirtualMachineScaleSet_disksOSDiskStorageAccountTypeStandardSSD(t *testing.T) {
+func TestAccAzureRMLinuxVirtualMachineScaleSet_disksOSDiskStorageAccountTypeStandardSSDLRS(t *testing.T) {
 	resourceName := "azurerm_linux_virtual_machine_scale_set.test"
 	ri := tf.AccRandTimeInt()
 	location := testLocation()
